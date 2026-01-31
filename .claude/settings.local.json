@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openclaw plugins enable qwen-portal-auth)",
+      "Bash(openclaw models auth login --provider qwen-portal --set-default)",
+      "Bash(git init)",
+      "Bash(git config user.name \"oneopenclaw\")",
+      "Bash(git config user.email \"oneopenclaw@yiscience.cn\")",
+      "Bash(git remote add origin https://github.com/Viciy2023/openclaw.git)",
+      "Bash(git config --list --local)",
+      "Bash(git add -A)"
+    ]
+  }
+}
