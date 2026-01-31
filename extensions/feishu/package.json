@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw/feishu",
+  "version": "2026.1.29",
+  "type": "module",
+  "description": "OpenClaw Feishu/Lark channel plugin",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

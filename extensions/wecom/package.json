@@ -1,0 +1,17 @@
+{
+  "name": "@openclaw/wecom",
+  "version": "2026.1.29",
+  "type": "module",
+  "description": "WeCom (企业微信) channel plugin for OpenClaw",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "openclaw": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
