@@ -78,6 +78,7 @@ import {
 } from "./app-channels";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity";
+import type { SkillMessage } from "./controllers/skills";
 
 declare global {
   interface Window {

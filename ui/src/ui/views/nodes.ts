@@ -1,6 +1,7 @@
 import { html, nothing } from "lit";
 
 import { clampText, formatAgo, formatList } from "../format";
+import { t } from "../i18n/index.js";
 import type {
   ExecApprovalsAllowlistEntry,
   ExecApprovalsFile,
@@ -51,6 +52,7 @@ export type NodesProps = {
 };
 
 export function renderNodes(props: NodesProps) {
+  const i18n = t();
   const bindingState = resolveBindingsState(props);
   const approvalsState = resolveExecApprovalsState(props);
   return html`
@@ -60,16 +62,16 @@ export function renderNodes(props: NodesProps) {
     <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
-          <div class="card-title">Nodes</div>
-          <div class="card-sub">Paired devices and live links.</div>
+          <div class="card-title">${i18n.nodes.title}</div>
+          <div class="card-sub">${i18n.nodes.subtitle}</div>
         </div>
         <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-          ${props.loading ? "Loading…" : "Refresh"}
+          ${props.loading ? i18n.common.loadingEllipsis : i18n.common.refresh}
         </button>
       </div>
       <div class="list" style="margin-top: 16px;">
         ${props.nodes.length === 0
-          ? html`<div class="muted">No nodes found.</div>`
+          ? html`<div class="muted">${i18n.nodes.noNodesFound}</div>`
           : props.nodes.map((n) => renderNode(n))}
       </div>
     </section>
@@ -77,6 +79,7 @@ export function renderNodes(props: NodesProps) {
 }
 
 function renderDevices(props: NodesProps) {
+  const i18n = t();
   const list = props.devicesList ?? { pending: [], paired: [] };
   const pending = Array.isArray(list.pending) ? list.pending : [];
   const paired = Array.isArray(list.paired) ? list.paired : [];
@@ -84,11 +87,11 @@ function renderDevices(props: NodesProps) {
     <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
-          <div class="card-title">Devices</div>
-          <div class="card-sub">Pairing requests + role tokens.</div>
+          <div class="card-title">${i18n.nodes.devices}</div>
+          <div class="card-sub">${i18n.nodes.devicesSub}</div>
         </div>
         <button class="btn" ?disabled=${props.devicesLoading} @click=${props.onDevicesRefresh}>
-          ${props.devicesLoading ? "Loading…" : "Refresh"}
+          ${props.devicesLoading ? i18n.common.loadingEllipsis : i18n.common.refresh}
         </button>
       </div>
       ${props.devicesError
@@ -97,18 +100,18 @@ function renderDevices(props: NodesProps) {
       <div class="list" style="margin-top: 16px;">
         ${pending.length > 0
           ? html`
-              <div class="muted" style="margin-bottom: 8px;">Pending</div>
+              <div class="muted" style="margin-bottom: 8px;">${i18n.common.pending}</div>
               ${pending.map((req) => renderPendingDevice(req, props))}
             `
           : nothing}
         ${paired.length > 0
           ? html`
-              <div class="muted" style="margin-top: 12px; margin-bottom: 8px;">Paired</div>
+              <div class="muted" style="margin-top: 12px; margin-bottom: 8px;">${i18n.common.paired}</div>
               ${paired.map((device) => renderPairedDevice(device, props))}
             `
           : nothing}
         ${pending.length === 0 && paired.length === 0
-          ? html`<div class="muted">No paired devices.</div>`
+          ? html`<div class="muted">${i18n.nodes.noPairedDevices}</div>`
           : nothing}
       </div>
     </section>
@@ -116,10 +119,11 @@ function renderDevices(props: NodesProps) {
 }
 
 function renderPendingDevice(req: PendingDevice, props: NodesProps) {
+  const i18n = t();
   const name = req.displayName?.trim() || req.deviceId;
-  const age = typeof req.ts === "number" ? formatAgo(req.ts) : "n/a";
-  const role = req.role?.trim() ? `role: ${req.role}` : "role: -";
-  const repair = req.isRepair ? " · repair" : "";
+  const age = typeof req.ts === "number" ? formatAgo(req.ts) : i18n.common.na;
+  const role = req.role?.trim() ? `${i18n.nodes.role}: ${req.role}` : `${i18n.nodes.role}: -`;
+  const repair = req.isRepair ? ` · ${i18n.nodes.repair}` : "";
   const ip = req.remoteIp ? ` · ${req.remoteIp}` : "";
   return html`
     <div class="list-item">
@@ -127,16 +131,16 @@ function renderPendingDevice(req: PendingDevice, props: NodesProps) {
         <div class="list-title">${name}</div>
         <div class="list-sub">${req.deviceId}${ip}</div>
         <div class="muted" style="margin-top: 6px;">
-          ${role} · requested ${age}${repair}
+          ${role} · ${i18n.nodes.requested} ${age}${repair}
         </div>
       </div>
       <div class="list-meta">
         <div class="row" style="justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
           <button class="btn btn--sm primary" @click=${() => props.onDeviceApprove(req.requestId)}>
-            Approve
+            ${i18n.nodes.approve}
           </button>
           <button class="btn btn--sm" @click=${() => props.onDeviceReject(req.requestId)}>
-            Reject
+            ${i18n.nodes.reject}
           </button>
         </div>
       </div>
@@ -145,10 +149,11 @@ function renderPendingDevice(req: PendingDevice, props: NodesProps) {
 }
 
 function renderPairedDevice(device: PairedDevice, props: NodesProps) {
+  const i18n = t();
   const name = device.displayName?.trim() || device.deviceId;
   const ip = device.remoteIp ? ` · ${device.remoteIp}` : "";
-  const roles = `roles: ${formatList(device.roles)}`;
-  const scopes = `scopes: ${formatList(device.scopes)}`;
+  const roles = `${i18n.nodes.roles}: ${formatList(device.roles)}`;
+  const scopes = `${i18n.nodes.scopes}: ${formatList(device.scopes)}`;
   const tokens = Array.isArray(device.tokens) ? device.tokens : [];
   return html`
     <div class="list-item">
@@ -157,9 +162,9 @@ function renderPairedDevice(device: PairedDevice, props: NodesProps) {
         <div class="list-sub">${device.deviceId}${ip}</div>
         <div class="muted" style="margin-top: 6px;">${roles} · ${scopes}</div>
         ${tokens.length === 0
-          ? html`<div class="muted" style="margin-top: 6px;">Tokens: none</div>`
+          ? html`<div class="muted" style="margin-top: 6px;">${i18n.nodes.tokensLabel}: ${i18n.nodes.tokensNone}</div>`
           : html`
-              <div class="muted" style="margin-top: 10px;">Tokens</div>
+              <div class="muted" style="margin-top: 10px;">${i18n.nodes.tokensLabel}</div>
               <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
                 ${tokens.map((token) => renderTokenRow(device.deviceId, token, props))}
               </div>
@@ -170,8 +175,9 @@ function renderPairedDevice(device: PairedDevice, props: NodesProps) {
 }
 
 function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: NodesProps) {
-  const status = token.revokedAtMs ? "revoked" : "active";
-  const scopes = `scopes: ${formatList(token.scopes)}`;
+  const i18n = t();
+  const status = token.revokedAtMs ? i18n.nodes.revoke : i18n.common.active;
+  const scopes = `${i18n.nodes.scopes}: ${formatList(token.scopes)}`;
   const when = formatAgo(token.rotatedAtMs ?? token.createdAtMs ?? token.lastUsedAtMs ?? null);
   return html`
     <div class="row" style="justify-content: space-between; gap: 8px;">
@@ -181,7 +187,7 @@ function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: Node
           class="btn btn--sm"
           @click=${() => props.onDeviceRotate(deviceId, token.role, token.scopes)}
         >
-          Rotate
+          ${i18n.nodes.rotate}
         </button>
         ${token.revokedAtMs
           ? nothing
@@ -190,7 +196,7 @@ function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: Node
                 class="btn btn--sm danger"
                 @click=${() => props.onDeviceRevoke(deviceId, token.role)}
               >
-                Revoke
+                ${i18n.nodes.revoke}
               </button>
             `}
       </div>
@@ -273,17 +279,21 @@ type ExecApprovalsState = {
 
 const EXEC_APPROVALS_DEFAULT_SCOPE = "__defaults__";
 
-const SECURITY_OPTIONS: Array<{ value: ExecSecurity; label: string }> = [
-  { value: "deny", label: "Deny" },
-  { value: "allowlist", label: "Allowlist" },
-  { value: "full", label: "Full" },
-];
+function getSecurityOptions(i18n: ReturnType<typeof t>): Array<{ value: ExecSecurity; label: string }> {
+  return [
+    { value: "deny", label: i18n.securityOptions.deny },
+    { value: "allowlist", label: i18n.securityOptions.allowlist },
+    { value: "full", label: i18n.securityOptions.full },
+  ];
+}
 
-const ASK_OPTIONS: Array<{ value: ExecAsk; label: string }> = [
-  { value: "off", label: "Off" },
-  { value: "on-miss", label: "On miss" },
-  { value: "always", label: "Always" },
-];
+function getAskOptions(i18n: ReturnType<typeof t>): Array<{ value: ExecAsk; label: string }> {
+  return [
+    { value: "off", label: i18n.askOptions.off },
+    { value: "on-miss", label: i18n.askOptions.onMiss },
+    { value: "always", label: i18n.askOptions.always },
+  ];
+}
 
 function resolveBindingsState(props: NodesProps): BindingState {
   const config = props.configForm;
@@ -430,15 +440,16 @@ function resolveExecApprovalsState(props: NodesProps): ExecApprovalsState {
 }
 
 function renderBindings(state: BindingState) {
+  const i18n = t();
   const supportsBinding = state.nodes.length > 0;
   const defaultValue = state.defaultBinding ?? "";
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
-          <div class="card-title">Exec node binding</div>
+          <div class="card-title">${i18n.nodesExt.execNodeBinding}</div>
           <div class="card-sub">
-            Pin agents to a specific node when using <span class="mono">exec host=node</span>.
+            ${i18n.nodesExt.execNodeBindingSub} <span class="mono">${i18n.nodesExt.execHostNode}</span>.
           </div>
         </div>
         <button
@@ -446,33 +457,33 @@ function renderBindings(state: BindingState) {
           ?disabled=${state.disabled || !state.configDirty}
           @click=${state.onSave}
         >
-          ${state.configSaving ? "Saving…" : "Save"}
+          ${state.configSaving ? i18n.common.saving : i18n.common.save}
         </button>
       </div>
 
       ${state.formMode === "raw"
         ? html`<div class="callout warn" style="margin-top: 12px;">
-            Switch the Config tab to <strong>Form</strong> mode to edit bindings here.
+            ${i18n.nodesExt.switchToFormMode}
           </div>`
         : nothing}
 
       ${!state.ready
         ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
-            <div class="muted">Load config to edit bindings.</div>
+            <div class="muted">${i18n.nodesExt.loadConfigHint}</div>
             <button class="btn" ?disabled=${state.configLoading} @click=${state.onLoadConfig}>
-              ${state.configLoading ? "Loading…" : "Load config"}
+              ${state.configLoading ? i18n.common.loadingEllipsis : i18n.nodesExt.loadConfig}
             </button>
           </div>`
         : html`
             <div class="list" style="margin-top: 16px;">
               <div class="list-item">
                 <div class="list-main">
-                  <div class="list-title">Default binding</div>
-                  <div class="list-sub">Used when agents do not override a node binding.</div>
+                  <div class="list-title">${i18n.nodesExt.defaultBinding}</div>
+                  <div class="list-sub">${i18n.nodesExt.defaultBindingSub}</div>
                 </div>
                 <div class="list-meta">
                   <label class="field">
-                    <span>Node</span>
+                    <span>${i18n.nodesExt.node}</span>
                     <select
                       ?disabled=${state.disabled || !supportsBinding}
                       @change=${(event: Event) => {
@@ -481,7 +492,7 @@ function renderBindings(state: BindingState) {
                         state.onBindDefault(value ? value : null);
                       }}
                     >
-                      <option value="" ?selected=${defaultValue === ""}>Any node</option>
+                      <option value="" ?selected=${defaultValue === ""}>${i18n.nodesExt.anyNode}</option>
                       ${state.nodes.map(
                         (node) =>
                           html`<option
@@ -494,13 +505,13 @@ function renderBindings(state: BindingState) {
                     </select>
                   </label>
                   ${!supportsBinding
-                    ? html`<div class="muted">No nodes with system.run available.</div>`
+                    ? html`<div class="muted">${i18n.nodesExt.noNodesWithSystemRun}</div>`
                     : nothing}
                 </div>
               </div>
 
               ${state.agents.length === 0
-                ? html`<div class="muted">No agents found.</div>`
+                ? html`<div class="muted">${i18n.nodesExt.noAgentsFound}</div>`
                 : state.agents.map((agent) =>
                     renderAgentBinding(agent, state),
                   )}
@@ -511,15 +522,16 @@ function renderBindings(state: BindingState) {
 }
 
 function renderExecApprovals(state: ExecApprovalsState) {
+  const i18n = t();
   const ready = state.ready;
   const targetReady = state.target !== "node" || Boolean(state.targetNodeId);
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
-          <div class="card-title">Exec approvals</div>
+          <div class="card-title">${i18n.nodesExt.execApprovals}</div>
           <div class="card-sub">
-            Allowlist and approval policy for <span class="mono">exec host=gateway/node</span>.
+            ${i18n.nodesExt.execApprovalsSub} <span class="mono">${i18n.nodesExt.execHostGatewayNode}</span>.
           </div>
         </div>
         <button
@@ -527,7 +539,7 @@ function renderExecApprovals(state: ExecApprovalsState) {
           ?disabled=${state.disabled || !state.dirty || !targetReady}
           @click=${state.onSave}
         >
-          ${state.saving ? "Saving…" : "Save"}
+          ${state.saving ? i18n.common.saving : i18n.common.save}
         </button>
       </div>
 
@@ -535,9 +547,9 @@ function renderExecApprovals(state: ExecApprovalsState) {
 
       ${!ready
         ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
-            <div class="muted">Load exec approvals to edit allowlists.</div>
+            <div class="muted">${i18n.nodesExt.loadExecApprovals}</div>
             <button class="btn" ?disabled=${state.loading || !targetReady} @click=${state.onLoad}>
-              ${state.loading ? "Loading…" : "Load approvals"}
+              ${state.loading ? i18n.common.loadingEllipsis : i18n.nodesExt.loadApprovals}
             </button>
           </div>`
         : html`
@@ -552,20 +564,21 @@ function renderExecApprovals(state: ExecApprovalsState) {
 }
 
 function renderExecApprovalsTarget(state: ExecApprovalsState) {
+  const i18n = t();
   const hasNodes = state.targetNodes.length > 0;
   const nodeValue = state.targetNodeId ?? "";
   return html`
     <div class="list" style="margin-top: 12px;">
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Target</div>
+          <div class="list-title">${i18n.nodesExt.target}</div>
           <div class="list-sub">
-            Gateway edits local approvals; node edits the selected node.
+            ${i18n.nodesExt.targetSub}
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Host</span>
+            <span>${i18n.nodesExt.host}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -579,14 +592,14 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                 }
               }}
             >
-              <option value="gateway" ?selected=${state.target === "gateway"}>Gateway</option>
-              <option value="node" ?selected=${state.target === "node"}>Node</option>
+              <option value="gateway" ?selected=${state.target === "gateway"}>${i18n.nodesExt.gateway}</option>
+              <option value="node" ?selected=${state.target === "node"}>${i18n.nodesExt.node}</option>
             </select>
           </label>
           ${state.target === "node"
             ? html`
                 <label class="field">
-                  <span>Node</span>
+                  <span>${i18n.nodesExt.node}</span>
                   <select
                     ?disabled=${state.disabled || !hasNodes}
                     @change=${(event: Event) => {
@@ -595,7 +608,7 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                       state.onSelectTarget("node", value ? value : null);
                     }}
                   >
-                    <option value="" ?selected=${nodeValue === ""}>Select node</option>
+                    <option value="" ?selected=${nodeValue === ""}>${i18n.nodesExt.selectNode}</option>
                     ${state.targetNodes.map(
                       (node) =>
                         html`<option
@@ -612,22 +625,23 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
         </div>
       </div>
       ${state.target === "node" && !hasNodes
-        ? html`<div class="muted">No nodes advertise exec approvals yet.</div>`
+        ? html`<div class="muted">${i18n.nodesExt.noNodesAdvertise}</div>`
         : nothing}
     </div>
   `;
 }
 
 function renderExecApprovalsTabs(state: ExecApprovalsState) {
+  const i18n = t();
   return html`
     <div class="row" style="margin-top: 12px; gap: 8px; flex-wrap: wrap;">
-      <span class="label">Scope</span>
+      <span class="label">${i18n.nodesExt.scope}</span>
       <div class="row" style="gap: 8px; flex-wrap: wrap;">
         <button
           class="btn btn--sm ${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE ? "active" : ""}"
           @click=${() => state.onSelectScope(EXEC_APPROVALS_DEFAULT_SCOPE)}
         >
-          Defaults
+          ${i18n.nodesExt.defaults}
         </button>
         ${state.agents.map((agent) => {
           const label = agent.name?.trim() ? `${agent.name} (${agent.id})` : agent.id;
@@ -646,6 +660,9 @@ function renderExecApprovalsTabs(state: ExecApprovalsState) {
 }
 
 function renderExecApprovalsPolicy(state: ExecApprovalsState) {
+  const i18n = t();
+  const SECURITY_OPTIONS = getSecurityOptions(i18n);
+  const ASK_OPTIONS = getAskOptions(i18n);
   const isDefaults = state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE;
   const defaults = state.defaults;
   const agent = state.selectedAgent ?? {};
@@ -668,16 +685,16 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
     <div class="list" style="margin-top: 16px;">
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Security</div>
+          <div class="list-title">${i18n.nodesExt.security}</div>
           <div class="list-sub">
             ${isDefaults
-              ? "Default security mode."
-              : `Default: ${defaults.security}.`}
+              ? i18n.nodesExt.securitySub
+              : `${i18n.nodesExt.defaults}: ${defaults.security}.`}
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Mode</span>
+            <span>${i18n.nodesExt.mode}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -692,7 +709,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
             >
               ${!isDefaults
                 ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
-                    Use default (${defaults.security})
+                    ${i18n.nodesExt.useDefault} (${defaults.security})
                   </option>`
                 : nothing}
               ${SECURITY_OPTIONS.map(
@@ -711,14 +728,14 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Ask</div>
+          <div class="list-title">${i18n.nodesExt.askTitle}</div>
           <div class="list-sub">
-            ${isDefaults ? "Default prompt policy." : `Default: ${defaults.ask}.`}
+            ${isDefaults ? i18n.nodesExt.askSub : `${i18n.nodesExt.defaults}: ${defaults.ask}.`}
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Mode</span>
+            <span>${i18n.nodesExt.mode}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -733,7 +750,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
             >
               ${!isDefaults
                 ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
-                    Use default (${defaults.ask})
+                    ${i18n.nodesExt.useDefault} (${defaults.ask})
                   </option>`
                 : nothing}
               ${ASK_OPTIONS.map(
@@ -752,16 +769,16 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Ask fallback</div>
+          <div class="list-title">${i18n.nodesExt.askFallback}</div>
           <div class="list-sub">
             ${isDefaults
-              ? "Applied when the UI prompt is unavailable."
-              : `Default: ${defaults.askFallback}.`}
+              ? i18n.nodesExt.askFallbackSub
+              : `${i18n.nodesExt.defaults}: ${defaults.askFallback}.`}
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Fallback</span>
+            <span>${i18n.nodesExt.fallback}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -776,7 +793,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
             >
               ${!isDefaults
                 ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
-                    Use default (${defaults.askFallback})
+                    ${i18n.nodesExt.useDefault} (${defaults.askFallback})
                   </option>`
                 : nothing}
               ${SECURITY_OPTIONS.map(
@@ -795,18 +812,18 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Auto-allow skill CLIs</div>
+          <div class="list-title">${i18n.nodesExt.autoAllowSkillClis}</div>
           <div class="list-sub">
             ${isDefaults
-              ? "Allow skill executables listed by the Gateway."
+              ? i18n.nodesExt.autoAllowSkillClisSub
               : autoIsDefault
-                ? `Using default (${defaults.autoAllowSkills ? "on" : "off"}).`
-                : `Override (${autoEffective ? "on" : "off"}).`}
+                ? `${i18n.nodesExt.usingDefault} (${defaults.autoAllowSkills ? i18n.nodesExt.on : i18n.nodesExt.off}).`
+                : `${i18n.nodesExt.override} (${autoEffective ? i18n.nodesExt.on : i18n.nodesExt.off}).`}
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Enabled</span>
+            <span>${i18n.nodesExt.enabled}</span>
             <input
               type="checkbox"
               ?disabled=${state.disabled}
@@ -823,7 +840,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
                 ?disabled=${state.disabled}
                 @click=${() => state.onRemove([...basePath, "autoAllowSkills"])}
               >
-                Use default
+                ${i18n.nodesExt.useDefault}
               </button>`
             : nothing}
         </div>
@@ -833,13 +850,14 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 }
 
 function renderExecApprovalsAllowlist(state: ExecApprovalsState) {
+  const i18n = t();
   const allowlistPath = ["agents", state.selectedScope, "allowlist"];
   const entries = state.allowlist;
   return html`
     <div class="row" style="margin-top: 18px; justify-content: space-between;">
       <div>
-        <div class="card-title">Allowlist</div>
-        <div class="card-sub">Case-insensitive glob patterns.</div>
+        <div class="card-title">${i18n.nodesExt.allowlist}</div>
+        <div class="card-sub">${i18n.nodesExt.allowlistSub}</div>
       </div>
       <button
         class="btn btn--sm"
@@ -849,12 +867,12 @@ function renderExecApprovalsAllowlist(state: ExecApprovalsState) {
           state.onPatch(allowlistPath, next);
         }}
       >
-        Add pattern
+        ${i18n.nodesExt.addPattern}
       </button>
     </div>
     <div class="list" style="margin-top: 12px;">
       ${entries.length === 0
-        ? html`<div class="muted">No allowlist entries yet.</div>`
+        ? html`<div class="muted">${i18n.nodesExt.noAllowlistEntries}</div>`
         : entries.map((entry, index) =>
             renderAllowlistEntry(state, entry, index),
           )}
@@ -867,7 +885,8 @@ function renderAllowlistEntry(
   entry: ExecApprovalsAllowlistEntry,
   index: number,
 ) {
-  const lastUsed = entry.lastUsedAt ? formatAgo(entry.lastUsedAt) : "never";
+  const i18n = t();
+  const lastUsed = entry.lastUsedAt ? formatAgo(entry.lastUsedAt) : i18n.nodesExt.never;
   const lastCommand = entry.lastUsedCommand
     ? clampText(entry.lastUsedCommand, 120)
     : null;
@@ -877,14 +896,14 @@ function renderAllowlistEntry(
   return html`
     <div class="list-item">
       <div class="list-main">
-        <div class="list-title">${entry.pattern?.trim() ? entry.pattern : "New pattern"}</div>
-        <div class="list-sub">Last used: ${lastUsed}</div>
+        <div class="list-title">${entry.pattern?.trim() ? entry.pattern : i18n.nodesExt.newPattern}</div>
+        <div class="list-sub">${i18n.nodesExt.lastUsed}: ${lastUsed}</div>
         ${lastCommand ? html`<div class="list-sub mono">${lastCommand}</div>` : nothing}
         ${lastPath ? html`<div class="list-sub mono">${lastPath}</div>` : nothing}
       </div>
       <div class="list-meta">
         <label class="field">
-          <span>Pattern</span>
+          <span>${i18n.nodesExt.pattern}</span>
           <input
             type="text"
             .value=${entry.pattern ?? ""}
@@ -909,7 +928,7 @@ function renderAllowlistEntry(
             state.onRemove(["agents", state.selectedScope, "allowlist", index]);
           }}
         >
-          Remove
+          ${i18n.nodesExt.remove}
         </button>
       </div>
     </div>
@@ -917,6 +936,7 @@ function renderAllowlistEntry(
 }
 
 function renderAgentBinding(agent: BindingAgent, state: BindingState) {
+  const i18n = t();
   const bindingValue = agent.binding ?? "__default__";
   const label = agent.name?.trim() ? `${agent.name} (${agent.id})` : agent.id;
   const supportsBinding = state.nodes.length > 0;
@@ -925,15 +945,15 @@ function renderAgentBinding(agent: BindingAgent, state: BindingState) {
       <div class="list-main">
         <div class="list-title">${label}</div>
         <div class="list-sub">
-          ${agent.isDefault ? "default agent" : "agent"} ·
+          ${agent.isDefault ? i18n.nodesExt.defaultAgent : i18n.nodesExt.agent} ·
           ${bindingValue === "__default__"
-            ? `uses default (${state.defaultBinding ?? "any"})`
-            : `override: ${agent.binding}`}
+            ? `${i18n.nodesExt.usesDefault} (${state.defaultBinding ?? i18n.nodesExt.any})`
+            : `${i18n.nodesExt.override}: ${agent.binding}`}
         </div>
       </div>
       <div class="list-meta">
         <label class="field">
-          <span>Binding</span>
+          <span>${i18n.nodesExt.binding}</span>
           <select
             ?disabled=${state.disabled || !supportsBinding}
             @change=${(event: Event) => {
@@ -943,7 +963,7 @@ function renderAgentBinding(agent: BindingAgent, state: BindingState) {
             }}
           >
             <option value="__default__" ?selected=${bindingValue === "__default__"}>
-              Use default
+              ${i18n.nodesExt.useDefault}
             </option>
             ${state.nodes.map(
               (node) =>
@@ -1055,6 +1075,7 @@ function resolveAgentBindings(config: Record<string, unknown> | null): {
 }
 
 function renderNode(node: Record<string, unknown>) {
+  const i18n = t();
   const connected = Boolean(node.connected);
   const paired = Boolean(node.paired);
   const title =
@@ -1072,9 +1093,9 @@ function renderNode(node: Record<string, unknown>) {
           ${typeof node.version === "string" ? ` · ${node.version}` : ""}
         </div>
         <div class="chip-row" style="margin-top: 6px;">
-          <span class="chip">${paired ? "paired" : "unpaired"}</span>
+          <span class="chip">${paired ? i18n.nodesExt.paired : i18n.nodesExt.unpaired}</span>
           <span class="chip ${connected ? "chip-ok" : "chip-warn"}">
-            ${connected ? "connected" : "offline"}
+            ${connected ? i18n.nodesExt.connected : i18n.nodesExt.offline}
           </span>
           ${caps.slice(0, 12).map((c) => html`<span class="chip">${String(c)}</span>`)}
           ${commands

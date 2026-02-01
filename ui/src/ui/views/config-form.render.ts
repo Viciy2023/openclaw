@@ -8,6 +8,7 @@ import {
   type JsonSchema,
 } from "./config-form.shared";
 import { renderNode } from "./config-form.node";
+import { t } from "../i18n/index.js";
 
 export type ConfigFormProps = {
   schema: JsonSchema | null;
@@ -54,7 +55,42 @@ const sectionIcons = {
   default: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`,
 };
 
-// Section metadata
+// Section metadata - returns translated labels and descriptions
+export function getSectionMeta(): Record<string, { label: string; description: string }> {
+  const i18n = t();
+  return {
+    env: { label: i18n.configSections.env, description: i18n.configSections.envDesc },
+    update: { label: i18n.configSections.update, description: i18n.configSections.updateDesc },
+    agents: { label: i18n.configSections.agents, description: i18n.configSections.agentsDesc },
+    auth: { label: i18n.configSections.auth, description: i18n.configSections.authDesc },
+    channels: { label: i18n.configSections.channels, description: i18n.configSections.channelsDesc },
+    messages: { label: i18n.configSections.messages, description: i18n.configSections.messagesDesc },
+    commands: { label: i18n.configSections.commands, description: i18n.configSections.commandsDesc },
+    hooks: { label: i18n.configSections.hooks, description: i18n.configSections.hooksDesc },
+    skills: { label: i18n.configSections.skills, description: i18n.configSections.skillsDesc },
+    tools: { label: i18n.configSections.tools, description: i18n.configSections.toolsDesc },
+    gateway: { label: i18n.configSections.gateway, description: i18n.configSections.gatewayDesc },
+    wizard: { label: i18n.configSections.wizard, description: i18n.configSections.wizardDesc },
+    // Additional sections
+    meta: { label: i18n.configSections.meta, description: i18n.configSections.metaDesc },
+    logging: { label: i18n.configSections.logging, description: i18n.configSections.loggingDesc },
+    browser: { label: i18n.configSections.browser, description: i18n.configSections.browserDesc },
+    ui: { label: i18n.configSections.ui, description: i18n.configSections.uiDesc },
+    models: { label: i18n.configSections.models, description: i18n.configSections.modelsDesc },
+    bindings: { label: i18n.configSections.bindings, description: i18n.configSections.bindingsDesc },
+    broadcast: { label: i18n.configSections.broadcast, description: i18n.configSections.broadcastDesc },
+    audio: { label: i18n.configSections.audio, description: i18n.configSections.audioDesc },
+    session: { label: i18n.configSections.session, description: i18n.configSections.sessionDesc },
+    cron: { label: i18n.configSections.cron, description: i18n.configSections.cronDesc },
+    web: { label: i18n.configSections.web, description: i18n.configSections.webDesc },
+    discovery: { label: i18n.configSections.discovery, description: i18n.configSections.discoveryDesc },
+    canvasHost: { label: i18n.configSections.canvasHost, description: i18n.configSections.canvasHostDesc },
+    talk: { label: i18n.configSections.talk, description: i18n.configSections.talkDesc },
+    plugins: { label: i18n.configSections.plugins, description: i18n.configSections.pluginsDesc },
+  };
+}
+
+// Keep SECTION_META for backward compatibility
 export const SECTION_META: Record<string, { label: string; description: string }> = {
   env: { label: "Environment Variables", description: "Environment variables passed to the gateway process" },
   update: { label: "Updates", description: "Auto-update settings and release channel" },
@@ -90,10 +126,10 @@ function getSectionIcon(key: string) {
   return sectionIcons[key as keyof typeof sectionIcons] ?? sectionIcons.default;
 }
 
-function matchesSearch(key: string, schema: JsonSchema, query: string): boolean {
+function matchesSearch(key: string, schema: JsonSchema, query: string, sectionMeta: Record<string, { label: string; description: string }>): boolean {
   if (!query) return true;
   const q = query.toLowerCase();
-  const meta = SECTION_META[key];
+  const meta = sectionMeta[key];
 
   // Check key name
   if (key.toLowerCase().includes(q)) return true;
@@ -141,13 +177,15 @@ function schemaMatches(schema: JsonSchema, query: string): boolean {
 }
 
 export function renderConfigForm(props: ConfigFormProps) {
+  const i18n = t();
+  const sectionMeta = getSectionMeta();
   if (!props.schema) {
-    return html`<div class="muted">Schema unavailable.</div>`;
+    return html`<div class="muted">${i18n.configSections.schemaUnavailable}</div>`;
   }
   const schema = props.schema;
   const value = props.value ?? {};
   if (schemaType(schema) !== "object" || !schema.properties) {
-    return html`<div class="callout danger">Unsupported schema. Use Raw.</div>`;
+    return html`<div class="callout danger">${i18n.configSections.unsupportedSchema}</div>`;
   }
   const unsupported = new Set(props.unsupportedPaths ?? []);
   const properties = schema.properties;
@@ -164,7 +202,7 @@ export function renderConfigForm(props: ConfigFormProps) {
 
   const filteredEntries = entries.filter(([key, node]) => {
     if (activeSection && key !== activeSection) return false;
-    if (searchQuery && !matchesSearch(key, node, searchQuery)) return false;
+    if (searchQuery && !matchesSearch(key, node, searchQuery, sectionMeta)) return false;
     return true;
   });
 
@@ -193,8 +231,8 @@ export function renderConfigForm(props: ConfigFormProps) {
         <div class="config-empty__icon">${icons.search}</div>
         <div class="config-empty__text">
           ${searchQuery
-            ? `No settings match "${searchQuery}"`
-            : "No settings in this section"}
+            ? `${i18n.configSections.noSettingsMatch} "${searchQuery}"`
+            : i18n.configSections.noSettingsInSection}
         </div>
       </div>
     `;
@@ -241,7 +279,7 @@ export function renderConfigForm(props: ConfigFormProps) {
             `;
           })()
         : filteredEntries.map(([key, node]) => {
-            const meta = SECTION_META[key] ?? {
+            const meta = sectionMeta[key] ?? {
               label: key.charAt(0).toUpperCase() + key.slice(1),
               description: node.description ?? "",
             };

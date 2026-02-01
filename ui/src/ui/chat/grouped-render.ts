@@ -12,6 +12,7 @@ import {
   formatReasoningMarkdown,
 } from "./message-extract";
 import { extractToolCards, renderToolCardSidebar } from "./tool-cards";
+import { t } from "../i18n/index.js";
 
 type ImageBlock = {
   url: string;
@@ -76,11 +77,12 @@ export function renderStreamingGroup(
   onOpenSidebar?: (content: string) => void,
   assistant?: AssistantIdentity,
 ) {
+  const i18n = t();
   const timestamp = new Date(startedAt).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
   });
-  const name = assistant?.name ?? "Assistant";
+  const name = assistant?.name ?? i18n.chatRender.assistant;
 
   return html`
     <div class="chat-group assistant">
@@ -113,11 +115,12 @@ export function renderMessageGroup(
     assistantAvatar?: string | null;
   },
 ) {
+  const i18n = t();
   const normalizedRole = normalizeRoleForGrouping(group.role);
-  const assistantName = opts.assistantName ?? "Assistant";
+  const assistantName = opts.assistantName ?? i18n.chatRender.assistant;
   const who =
     normalizedRole === "user"
-      ? "You"
+      ? i18n.chatRender.you
       : normalizedRole === "assistant"
         ? assistantName
         : normalizedRole;
@@ -163,8 +166,9 @@ function renderAvatar(
   role: string,
   assistant?: Pick<AssistantIdentity, "name" | "avatar">,
 ) {
+  const i18n = t();
   const normalized = normalizeRoleForGrouping(role);
-  const assistantName = assistant?.name?.trim() || "Assistant";
+  const assistantName = assistant?.name?.trim() || i18n.chatRender.assistant;
   const assistantAvatar = assistant?.avatar?.trim() || "";
   const initial =
     normalized === "user"
@@ -207,6 +211,7 @@ function isAvatarUrl(value: string): boolean {
 
 function renderMessageImages(images: ImageBlock[]) {
   if (images.length === 0) return nothing;
+  const i18n = t();
 
   return html`
     <div class="chat-message-images">
@@ -214,7 +219,7 @@ function renderMessageImages(images: ImageBlock[]) {
         (img) => html`
           <img
             src=${img.url}
-            alt=${img.alt ?? "Attached image"}
+            alt=${img.alt ?? i18n.chatRender.attachedImage}
             class="chat-message-image"
             @click=${() => window.open(img.url, "_blank")}
           />

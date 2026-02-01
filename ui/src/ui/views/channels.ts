@@ -33,7 +33,7 @@ import { renderWhatsAppCard } from "./channels.whatsapp";
 import { t } from "../i18n/index.js";
 
 export function renderChannels(props: ChannelsProps) {
-  const translations = t();
+  const i18n = t();
   const channels = props.snapshot?.channels as Record<string, unknown> | null;
   const whatsapp = (channels?.whatsapp ?? undefined) as
     | WhatsAppStatus
@@ -79,10 +79,10 @@ export function renderChannels(props: ChannelsProps) {
     <section class="card" style="margin-top: 18px;">
       <div class="row" style="justify-content: space-between;">
         <div>
-          <div class="card-title">${translations.channels.title}</div>
-          <div class="card-sub">${translations.health.ok}</div>
+          <div class="card-title">${i18n.channels.title}</div>
+          <div class="card-sub">${i18n.health.ok}</div>
         </div>
-        <div class="muted">${props.lastSuccessAt ? formatAgo(props.lastSuccessAt) : "n/a"}</div>
+        <div class="muted">${props.lastSuccessAt ? formatAgo(props.lastSuccessAt) : i18n.common.na}</div>
       </div>
       ${props.lastError
         ? html`<div class="callout danger" style="margin-top: 12px;">
@@ -90,7 +90,7 @@ export function renderChannels(props: ChannelsProps) {
           </div>`
         : nothing}
       <pre class="code-block" style="margin-top: 12px;">
-${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : "No snapshot yet."}
+${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : i18n.channels.noSnapshotYet}
       </pre>
     </section>
   `;
@@ -205,6 +205,7 @@ function renderGenericChannelCard(
   props: ChannelsProps,
   channelAccounts: Record<string, ChannelAccountSnapshot[]>,
 ) {
+  const i18n = t();
   const label = resolveChannelLabel(props.snapshot, key);
   const status = props.snapshot?.channels?.[key] as Record<string, unknown> | undefined;
   const configured = typeof status?.configured === "boolean" ? status.configured : undefined;
@@ -217,28 +218,28 @@ function renderGenericChannelCard(
   return html`
     <div class="card">
       <div class="card-title">${label}</div>
-      <div class="card-sub">Channel status and configuration.</div>
+      <div class="card-sub">${i18n.channels.channelStatusConfig}</div>
       ${accountCountLabel}
 
       ${accounts.length > 0
         ? html`
             <div class="account-card-list">
-              ${accounts.map((account) => renderGenericAccount(account))}
+              ${accounts.map((account) => renderGenericAccount(account, i18n))}
             </div>
           `
         : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
-                <span class="label">Configured</span>
-                <span>${configured == null ? "n/a" : configured ? "Yes" : "No"}</span>
+                <span class="label">${i18n.channels.configured}</span>
+                <span>${configured == null ? i18n.common.na : configured ? i18n.common.yes : i18n.common.no}</span>
               </div>
               <div>
-                <span class="label">Running</span>
-                <span>${running == null ? "n/a" : running ? "Yes" : "No"}</span>
+                <span class="label">${i18n.common.running}</span>
+                <span>${running == null ? i18n.common.na : running ? i18n.common.yes : i18n.common.no}</span>
               </div>
               <div>
-                <span class="label">Connected</span>
-                <span>${connected == null ? "n/a" : connected ? "Yes" : "No"}</span>
+                <span class="label">${i18n.common.connected}</span>
+                <span>${connected == null ? i18n.common.na : connected ? i18n.common.yes : i18n.common.no}</span>
               </div>
             </div>
           `}
@@ -276,24 +277,22 @@ function hasRecentActivity(account: ChannelAccountSnapshot): boolean {
   return Date.now() - account.lastInboundAt < RECENT_ACTIVITY_THRESHOLD_MS;
 }
 
-function deriveRunningStatus(account: ChannelAccountSnapshot): "Yes" | "No" | "Active" {
-  if (account.running) return "Yes";
-  // If we have recent inbound activity, the channel is effectively running
-  if (hasRecentActivity(account)) return "Active";
-  return "No";
+function deriveRunningStatus(account: ChannelAccountSnapshot, i18n: ReturnType<typeof t>): string {
+  if (account.running) return i18n.common.yes;
+  if (hasRecentActivity(account)) return i18n.common.active;
+  return i18n.common.no;
 }
 
-function deriveConnectedStatus(account: ChannelAccountSnapshot): "Yes" | "No" | "Active" | "n/a" {
-  if (account.connected === true) return "Yes";
-  if (account.connected === false) return "No";
-  // If connected is null/undefined but we have recent activity, show as active
-  if (hasRecentActivity(account)) return "Active";
-  return "n/a";
+function deriveConnectedStatus(account: ChannelAccountSnapshot, i18n: ReturnType<typeof t>): string {
+  if (account.connected === true) return i18n.common.yes;
+  if (account.connected === false) return i18n.common.no;
+  if (hasRecentActivity(account)) return i18n.common.active;
+  return i18n.common.na;
 }
 
-function renderGenericAccount(account: ChannelAccountSnapshot) {
-  const runningStatus = deriveRunningStatus(account);
-  const connectedStatus = deriveConnectedStatus(account);
+function renderGenericAccount(account: ChannelAccountSnapshot, i18n: ReturnType<typeof t>) {
+  const runningStatus = deriveRunningStatus(account, i18n);
+  const connectedStatus = deriveConnectedStatus(account, i18n);
 
   return html`
     <div class="account-card">
@@ -303,20 +302,20 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
       </div>
       <div class="status-list account-card-status">
         <div>
-          <span class="label">Running</span>
+          <span class="label">${i18n.common.running}</span>
           <span>${runningStatus}</span>
         </div>
         <div>
-          <span class="label">Configured</span>
-          <span>${account.configured ? "Yes" : "No"}</span>
+          <span class="label">${i18n.channels.configured}</span>
+          <span>${account.configured ? i18n.common.yes : i18n.common.no}</span>
         </div>
         <div>
-          <span class="label">Connected</span>
+          <span class="label">${i18n.common.connected}</span>
           <span>${connectedStatus}</span>
         </div>
         <div>
-          <span class="label">Last inbound</span>
-          <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "n/a"}</span>
+          <span class="label">${i18n.channels.lastInbound}</span>
+          <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : i18n.common.na}</span>
         </div>
         ${account.lastError
           ? html`

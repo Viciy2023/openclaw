@@ -10,7 +10,9 @@
       "Bash(git config --list --local)",
       "Bash(git add -A)",
       "Bash(pnpm ui:build)",
-      "Bash(git add ui/src/ui/app-render.helpers.ts ui/src/ui/navigation.ts ui/src/ui/views/channels.ts ui/src/ui/views/chat.ts ui/src/ui/views/config.ts ui/src/ui/views/overview.ts)"
+      "Bash(git add ui/src/ui/app-render.helpers.ts ui/src/ui/navigation.ts ui/src/ui/views/channels.ts ui/src/ui/views/chat.ts ui/src/ui/views/config.ts ui/src/ui/views/overview.ts)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(ui\\): implement i18n language switching functionality\n\n- Add language selector component in Overview page\n- Integrate i18n translations in navigation.ts for tab titles\n- Update config.ts with translated labels for settings, buttons\n- Update chat.ts with translated button labels\n- Update channels.ts with translated section titles\n- Language preference persists in localStorage\n- Supports English and Simplified Chinese \\(简体中文\\)\nEOF\n\\)\")",
+      "Bash(git push origin main)"
     ]
   }
 }

@@ -1,26 +1,30 @@
 import { stripReasoningTagsFromText } from "../../../src/shared/text/reasoning-tags.js";
+import { t } from "./i18n/index.js";
 
 export function formatMs(ms?: number | null): string {
-  if (!ms && ms !== 0) return "n/a";
+  const i18n = t();
+  if (!ms && ms !== 0) return i18n.format.na;
   return new Date(ms).toLocaleString();
 }
 
 export function formatAgo(ms?: number | null): string {
-  if (!ms && ms !== 0) return "n/a";
+  const i18n = t();
+  if (!ms && ms !== 0) return i18n.format.na;
   const diff = Date.now() - ms;
-  if (diff < 0) return "just now";
+  if (diff < 0) return i18n.format.justNow;
   const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
+  if (sec < 60) return i18n.format.secondsAgo.replace("{n}", String(sec));
   const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return i18n.format.minutesAgo.replace("{n}", String(min));
   const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr}h ago`;
+  if (hr < 48) return i18n.format.hoursAgo.replace("{n}", String(hr));
   const day = Math.round(hr / 24);
-  return `${day}d ago`;
+  return i18n.format.daysAgo.replace("{n}", String(day));
 }
 
 export function formatDurationMs(ms?: number | null): string {
-  if (!ms && ms !== 0) return "n/a";
+  const i18n = t();
+  if (!ms && ms !== 0) return i18n.format.na;
   if (ms < 1000) return `${ms}ms`;
   const sec = Math.round(ms / 1000);
   if (sec < 60) return `${sec}s`;
@@ -33,7 +37,8 @@ export function formatDurationMs(ms?: number | null): string {
 }
 
 export function formatList(values?: Array<string | null | undefined>): string {
-  if (!values || values.length === 0) return "none";
+  const i18n = t();
+  if (!values || values.length === 0) return i18n.format.none;
   return values.filter((v): v is string => Boolean(v && v.trim())).join(", ");
 }
 

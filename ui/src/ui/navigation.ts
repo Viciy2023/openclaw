@@ -1,6 +1,20 @@
 import type { IconName } from "./icons.js";
 import { t } from "./i18n/index.js";
 
+export function getTabGroups() {
+  const translations = t();
+  return [
+    { label: translations.nav.chat, tabs: ["chat"] },
+    {
+      label: translations.nav.control,
+      tabs: ["overview", "channels", "instances", "sessions", "cron"],
+    },
+    { label: translations.nav.agent, tabs: ["skills", "nodes"] },
+    { label: translations.nav.settings, tabs: ["config", "debug", "logs"] },
+  ] as const;
+}
+
+// Keep TAB_GROUPS for backward compatibility but it won't be translated
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
@@ -161,29 +175,30 @@ export function titleForTab(tab: Tab) {
 }
 
 export function subtitleForTab(tab: Tab) {
+  const translations = t();
   switch (tab) {
     case "overview":
-      return "Gateway status, entry points, and a fast health read.";
+      return translations.overview.snapshotSub;
     case "channels":
-      return "Manage channels and settings.";
+      return translations.channels.channelStatusConfig;
     case "instances":
-      return "Presence beacons from connected clients and nodes.";
+      return translations.overview.instancesSub;
     case "sessions":
-      return "Inspect active sessions and adjust per-session defaults.";
+      return translations.sessions.subtitle;
     case "cron":
-      return "Schedule wakeups and recurring agent runs.";
+      return translations.cron.schedulerSub;
     case "skills":
-      return "Manage skill availability and API key injection.";
+      return translations.skills.subtitle;
     case "nodes":
-      return "Paired devices, capabilities, and command exposure.";
+      return translations.nodes.subtitle;
     case "chat":
-      return "Direct gateway chat session for quick interventions.";
+      return translations.chat.title;
     case "config":
-      return "Edit ~/.openclaw/openclaw.json safely.";
+      return translations.config.subtitle;
     case "debug":
-      return "Gateway snapshots, events, and manual RPC calls.";
+      return translations.debug.title;
     case "logs":
-      return "Live tail of the gateway file logs.";
+      return translations.logs.title;
     default:
       return "";
   }

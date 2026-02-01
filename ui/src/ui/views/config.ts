@@ -74,21 +74,23 @@ const sidebarIcons = {
   default: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`,
 };
 
-// Section definitions
-const SECTIONS: Array<{ key: string; label: string }> = [
-  { key: "env", label: "Environment" },
-  { key: "update", label: "Updates" },
-  { key: "agents", label: "Agents" },
-  { key: "auth", label: "Authentication" },
-  { key: "channels", label: "Channels" },
-  { key: "messages", label: "Messages" },
-  { key: "commands", label: "Commands" },
-  { key: "hooks", label: "Hooks" },
-  { key: "skills", label: "Skills" },
-  { key: "tools", label: "Tools" },
-  { key: "gateway", label: "Gateway" },
-  { key: "wizard", label: "Setup Wizard" },
-];
+// Section definitions - use function to get translated labels
+function getSections(i18n: ReturnType<typeof t>): Array<{ key: string; label: string }> {
+  return [
+    { key: "env", label: i18n.configExt.environment },
+    { key: "update", label: i18n.configExt.updates },
+    { key: "agents", label: i18n.configExt.agents },
+    { key: "auth", label: i18n.configExt.authentication },
+    { key: "channels", label: i18n.configExt.channels },
+    { key: "messages", label: i18n.configExt.messages },
+    { key: "commands", label: i18n.configExt.commands },
+    { key: "hooks", label: i18n.configExt.hooks },
+    { key: "skills", label: i18n.configExt.skills },
+    { key: "tools", label: i18n.configExt.tools },
+    { key: "gateway", label: i18n.configExt.gateway },
+    { key: "wizard", label: i18n.configExt.setupWizard },
+  ];
+}
 
 type SubsectionEntry = {
   key: string;
@@ -184,6 +186,7 @@ function truncateValue(value: unknown, maxLen = 40): string {
 
 export function renderConfig(props: ConfigProps) {
   const translations = t();
+  const SECTIONS = getSections(translations);
   const validity =
     props.valid == null ? "unknown" : props.valid ? translations.common.valid : translations.common.invalid;
   const analysis = analyzeConfigSchema(props.schema);
@@ -365,7 +368,7 @@ export function renderConfig(props: ConfigProps) {
         ${hasChanges && props.formMode === "form" ? html`
           <details class="config-diff">
             <summary class="config-diff__summary">
-              <span>View ${diff.length} pending change${diff.length !== 1 ? "s" : ""}</span>
+              <span>${translations.configExt.viewPendingChanges.replace("{count}", String(diff.length))}</span>
               <svg class="config-diff__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
@@ -406,7 +409,7 @@ export function renderConfig(props: ConfigProps) {
                   class="config-subnav__item ${effectiveSubsection === null ? "active" : ""}"
                   @click=${() => props.onSubsectionChange(ALL_SUBSECTION)}
                 >
-                  All
+                  ${translations.configExt.all}
                 </button>
                 ${subsections.map(
                   (entry) => html`
@@ -432,7 +435,7 @@ export function renderConfig(props: ConfigProps) {
                 ${props.schemaLoading
                   ? html`<div class="config-loading">
                       <div class="config-loading__spinner"></div>
-                      <span>Loading schema…</span>
+                      <span>${translations.configExt.loadingSchema}</span>
                     </div>`
                   : renderConfigForm({
                       schema: analysis.schema,
@@ -447,14 +450,13 @@ export function renderConfig(props: ConfigProps) {
                     })}
                 ${formUnsafe
                   ? html`<div class="callout danger" style="margin-top: 12px;">
-                      Form view can't safely edit some fields.
-                      Use Raw to avoid losing config entries.
+                      ${translations.configExt.formViewWarning}
                     </div>`
                   : nothing}
               `
             : html`
                 <label class="field config-raw-field">
-                  <span>Raw JSON5</span>
+                  <span>${translations.configExt.rawJson5}</span>
                   <textarea
                     .value=${props.raw}
                     @input=${(e: Event) =>

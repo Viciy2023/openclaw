@@ -7,6 +7,7 @@ import type {
   AgentsListResult,
   ChannelsStatusSnapshot,
   ConfigSnapshot,
+  ConfigUiHints,
   CronJob,
   CronRunLogEntry,
   CronStatus,
@@ -29,6 +30,7 @@ import type {
 import type { DevicePairingList } from "./controllers/devices";
 import type { ExecApprovalRequest } from "./controllers/exec-approval";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
+import type { CompactionStatus, ToolStreamEntry } from "./app-tool-stream";
 
 export type AppViewState = {
   settings: UiSettings;
@@ -53,10 +55,30 @@ export type AppViewState = {
   chatMessages: unknown[];
   chatToolMessages: unknown[];
   chatStream: string | null;
+  chatStreamStartedAt: number | null;
   chatRunId: string | null;
   chatAvatarUrl: string | null;
   chatThinkingLevel: string | null;
   chatQueue: ChatQueueItem[];
+  // Tool stream state
+  toolStreamById: Map<string, ToolStreamEntry>;
+  toolStreamOrder: string[];
+  toolStreamSyncTimer: number | null;
+  // Compaction status
+  compactionStatus: CompactionStatus | null;
+  compactionClearTimer: number | null;
+  // Chat scroll state
+  chatScrollFrame: number | null;
+  chatScrollTimeout: number | null;
+  chatHasAutoScrolled: boolean;
+  chatUserNearBottom: boolean;
+  // Sidebar state for tool output viewing
+  sidebarOpen: boolean;
+  sidebarContent: string | null;
+  sidebarError: string | null;
+  splitRatio: number;
+  // Sessions refresh tracking
+  refreshSessionsAfterChat: Set<string>;
   nodesLoading: boolean;
   nodes: Array<Record<string, unknown>>;
   devicesLoading: boolean;
@@ -84,11 +106,16 @@ export type AppViewState = {
   updateRunning: boolean;
   configSnapshot: ConfigSnapshot | null;
   configSchema: unknown | null;
+  configSchemaVersion: string | null;
   configSchemaLoading: boolean;
-  configUiHints: Record<string, unknown>;
+  configUiHints: ConfigUiHints;
   configForm: Record<string, unknown> | null;
   configFormOriginal: Record<string, unknown> | null;
   configFormMode: "form" | "raw";
+  configSearchQuery: string;
+  configActiveSection: string | null;
+  configActiveSubsection: string | null;
+  applySessionKey: string;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
@@ -146,6 +173,13 @@ export type AppViewState = {
   logsLevelFilters: Record<LogLevel, boolean>;
   logsAutoFollow: boolean;
   logsTruncated: boolean;
+  logsCursor: number | null;
+  logsLastFetchAt: number | null;
+  logsLimit: number;
+  logsMaxBytes: number;
+  // Logs scroll state
+  logsScrollFrame: number | null;
+  logsAtBottom: boolean;
   client: GatewayBrowserClient | null;
   connect: () => void;
   setTab: (tab: Tab) => void;
@@ -206,4 +240,23 @@ export type AppViewState = {
   handleLogsLevelFilterToggle: (level: LogLevel) => void;
   handleLogsAutoFollowToggle: (next: boolean) => void;
   handleCallDebugMethod: (method: string, params: string) => Promise<void>;
+  // Chat methods
+  handleSendChat: (messageOverride?: string, opts?: { restoreDraft?: boolean }) => Promise<void>;
+  handleAbortChat: () => Promise<void>;
+  handleChatScroll: (event: Event) => void;
+  removeQueuedMessage: (id: string) => void;
+  resetToolStream: () => void;
+  resetChatScroll: () => void;
+  // Sidebar methods
+  handleOpenSidebar: (content: string) => void;
+  handleCloseSidebar: () => void;
+  handleSplitRatioChange: (ratio: number) => void;
+  // Logs methods
+  exportLogs: (lines: string[], label: string) => void;
+  handleLogsScroll: (event: Event) => void;
+  // Lit element interface (for scroll helpers)
+  updateComplete: Promise<unknown>;
+  querySelector: (selectors: string) => Element | null;
+  style: CSSStyleDeclaration;
+  topbarObserver: ResizeObserver | null;
 };

@@ -7,6 +7,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 
 import type { NostrProfile as NostrProfileType } from "../types";
+import { t } from "../i18n/index.js";
 
 // ============================================================================
 // Types
@@ -71,6 +72,7 @@ export function renderNostrProfileForm(params: {
   callbacks: NostrProfileFormCallbacks;
   accountId: string;
 }): TemplateResult {
+  const i18n = t();
   const { state, callbacks, accountId } = params;
   const isDirty = isFormDirty(state);
 
@@ -165,8 +167,8 @@ export function renderNostrProfileForm(params: {
   return html`
     <div class="nostr-profile-form" style="padding: 16px; background: var(--bg-secondary); border-radius: 8px; margin-top: 12px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="font-weight: 600; font-size: 16px;">Edit Profile</div>
-        <div style="font-size: 12px; color: var(--text-muted);">Account: ${accountId}</div>
+        <div style="font-weight: 600; font-size: 16px;">${i18n.nostrProfile.editProfile}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">${i18n.nostrProfile.account}: ${accountId}</div>
       </div>
 
       ${state.error
@@ -179,56 +181,56 @@ export function renderNostrProfileForm(params: {
 
       ${renderPicturePreview()}
 
-      ${renderField("name", "Username", {
-        placeholder: "satoshi",
+      ${renderField("name", i18n.nostrProfile.username, {
+        placeholder: i18n.nostrProfile.usernamePlaceholder,
         maxLength: 256,
-        help: "Short username (e.g., satoshi)",
+        help: i18n.nostrProfile.usernameHelp,
       })}
 
-      ${renderField("displayName", "Display Name", {
-        placeholder: "Satoshi Nakamoto",
+      ${renderField("displayName", i18n.nostrProfile.displayName, {
+        placeholder: i18n.nostrProfile.displayNamePlaceholder,
         maxLength: 256,
-        help: "Your full display name",
+        help: i18n.nostrProfile.displayNameHelp,
       })}
 
-      ${renderField("about", "Bio", {
+      ${renderField("about", i18n.nostrProfile.bio, {
         type: "textarea",
-        placeholder: "Tell people about yourself...",
+        placeholder: i18n.nostrProfile.bioPlaceholder,
         maxLength: 2000,
-        help: "A brief bio or description",
+        help: i18n.nostrProfile.bioHelp,
       })}
 
-      ${renderField("picture", "Avatar URL", {
+      ${renderField("picture", i18n.nostrProfile.avatarUrl, {
         type: "url",
-        placeholder: "https://example.com/avatar.jpg",
-        help: "HTTPS URL to your profile picture",
+        placeholder: i18n.nostrProfile.avatarUrlPlaceholder,
+        help: i18n.nostrProfile.avatarUrlHelp,
       })}
 
       ${state.showAdvanced
         ? html`
             <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
-              <div style="font-weight: 500; margin-bottom: 12px; color: var(--text-muted);">Advanced</div>
+              <div style="font-weight: 500; margin-bottom: 12px; color: var(--text-muted);">${i18n.nostrProfile.advanced}</div>
 
-              ${renderField("banner", "Banner URL", {
+              ${renderField("banner", i18n.nostrProfile.bannerUrl, {
                 type: "url",
-                placeholder: "https://example.com/banner.jpg",
-                help: "HTTPS URL to a banner image",
+                placeholder: i18n.nostrProfile.bannerUrlPlaceholder,
+                help: i18n.nostrProfile.bannerUrlHelp,
               })}
 
-              ${renderField("website", "Website", {
+              ${renderField("website", i18n.nostrProfile.website, {
                 type: "url",
-                placeholder: "https://example.com",
-                help: "Your personal website",
+                placeholder: i18n.nostrProfile.websitePlaceholder,
+                help: i18n.nostrProfile.websiteHelp,
               })}
 
-              ${renderField("nip05", "NIP-05 Identifier", {
-                placeholder: "you@example.com",
-                help: "Verifiable identifier (e.g., you@domain.com)",
+              ${renderField("nip05", i18n.nostrProfile.nip05, {
+                placeholder: i18n.nostrProfile.nip05Placeholder,
+                help: i18n.nostrProfile.nip05Help,
               })}
 
-              ${renderField("lud16", "Lightning Address", {
-                placeholder: "you@getalby.com",
-                help: "Lightning address for tips (LUD-16)",
+              ${renderField("lud16", i18n.nostrProfile.lightningAddress, {
+                placeholder: i18n.nostrProfile.lightningAddressPlaceholder,
+                help: i18n.nostrProfile.lightningAddressHelp,
               })}
             </div>
           `
@@ -240,7 +242,7 @@ export function renderNostrProfileForm(params: {
           @click=${callbacks.onSave}
           ?disabled=${state.saving || !isDirty}
         >
-          ${state.saving ? "Saving..." : "Save & Publish"}
+          ${state.saving ? i18n.nostrProfile.saving : i18n.nostrProfile.savePublish}
         </button>
 
         <button
@@ -248,14 +250,14 @@ export function renderNostrProfileForm(params: {
           @click=${callbacks.onImport}
           ?disabled=${state.importing || state.saving}
         >
-          ${state.importing ? "Importing..." : "Import from Relays"}
+          ${state.importing ? i18n.nostrProfile.importing : i18n.nostrProfile.importFromRelays}
         </button>
 
         <button
           class="btn"
           @click=${callbacks.onToggleAdvanced}
         >
-          ${state.showAdvanced ? "Hide Advanced" : "Show Advanced"}
+          ${state.showAdvanced ? i18n.nostrProfile.hideAdvanced : i18n.nostrProfile.showAdvanced}
         </button>
 
         <button
@@ -263,13 +265,13 @@ export function renderNostrProfileForm(params: {
           @click=${callbacks.onCancel}
           ?disabled=${state.saving}
         >
-          Cancel
+          ${i18n.nostrProfile.cancel}
         </button>
       </div>
 
       ${isDirty
         ? html`<div style="font-size: 12px; color: var(--warning-color); margin-top: 8px;">
-            You have unsaved changes
+            ${i18n.nostrProfile.unsavedChanges}
           </div>`
         : nothing}
     </div>
