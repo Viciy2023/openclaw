@@ -4,6 +4,7 @@ import type { GatewayHelloOk } from "../gateway";
 import { formatAgo, formatDurationMs } from "../format";
 import { formatNextRun } from "../presenter";
 import type { UiSettings } from "../storage";
+import { t, getLanguage, setLanguage, getSupportedLanguages, onLanguageChange, type SupportedLanguage } from "../i18n/index.js";
 
 export type OverviewProps = {
   connected: boolean;
@@ -234,6 +235,33 @@ export function renderOverview(props: OverviewProps) {
               : "Disabled"}
         </div>
         <div class="muted">Next wake ${formatNextRun(props.cronNext)}</div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <div class="card-title">${t().nav.settings}</div>
+      <div class="card-sub">${t().config.subtitle}</div>
+      <div class="form-grid" style="margin-top: 16px;">
+        <label class="field">
+          <span>${t().common.language}</span>
+          <select
+            .value=${getLanguage()}
+            @change=${(e: Event) => {
+              const lang = (e.target as HTMLSelectElement).value as SupportedLanguage;
+              setLanguage(lang);
+              // Force re-render by triggering a small state change
+              window.location.reload();
+            }}
+          >
+            ${getSupportedLanguages().map(
+              (lang) => html`
+                <option value=${lang.code} ?selected=${lang.code === getLanguage()}>
+                  ${lang.nativeLabel}
+                </option>
+              `
+            )}
+          </select>
+        </label>
       </div>
     </section>
 

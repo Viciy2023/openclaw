@@ -1,4 +1,5 @@
 import type { IconName } from "./icons.js";
+import { t } from "./i18n/index.js";
 
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
@@ -130,31 +131,32 @@ export function iconForTab(tab: Tab): IconName {
 }
 
 export function titleForTab(tab: Tab) {
+  const translations = t();
   switch (tab) {
     case "overview":
-      return "Overview";
+      return translations.nav.overview;
     case "channels":
-      return "Channels";
+      return translations.nav.channels;
     case "instances":
-      return "Instances";
+      return translations.nav.instances;
     case "sessions":
-      return "Sessions";
+      return translations.nav.sessions;
     case "cron":
-      return "Cron Jobs";
+      return translations.nav.cronJobs;
     case "skills":
-      return "Skills";
+      return translations.nav.skills;
     case "nodes":
-      return "Nodes";
+      return translations.nav.nodes;
     case "chat":
-      return "Chat";
+      return translations.nav.chat;
     case "config":
-      return "Config";
+      return translations.nav.config;
     case "debug":
-      return "Debug";
+      return translations.nav.debug;
     case "logs":
-      return "Logs";
+      return translations.nav.logs;
     default:
-      return "Control";
+      return translations.nav.control;
   }
 }
 

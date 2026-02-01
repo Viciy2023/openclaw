@@ -8,7 +8,9 @@
       "Bash(git config user.email \"oneopenclaw@yiscience.cn\")",
       "Bash(git remote add origin https://github.com/Viciy2023/openclaw.git)",
       "Bash(git config --list --local)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(pnpm ui:build)",
+      "Bash(git add ui/src/ui/app-render.helpers.ts ui/src/ui/navigation.ts ui/src/ui/views/channels.ts ui/src/ui/views/chat.ts ui/src/ui/views/config.ts ui/src/ui/views/overview.ts)"
     ]
   }
 }

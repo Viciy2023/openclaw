@@ -7,6 +7,7 @@ import {
   schemaType,
   type JsonSchema,
 } from "./config-form.shared";
+import { t } from "../i18n/index.js";
 
 export type ConfigProps = {
   raw: string;
@@ -182,8 +183,9 @@ function truncateValue(value: unknown, maxLen = 40): string {
 }
 
 export function renderConfig(props: ConfigProps) {
+  const translations = t();
   const validity =
-    props.valid == null ? "unknown" : props.valid ? "valid" : "invalid";
+    props.valid == null ? "unknown" : props.valid ? translations.common.valid : translations.common.invalid;
   const analysis = analyzeConfigSchema(props.schema);
   const formUnsafe = analysis.schema
     ? analysis.unsupportedPaths.length > 0
@@ -255,8 +257,8 @@ export function renderConfig(props: ConfigProps) {
       <!-- Sidebar -->
       <aside class="config-sidebar">
         <div class="config-sidebar__header">
-          <div class="config-sidebar__title">Settings</div>
-          <span class="pill pill--sm ${validity === "valid" ? "pill--ok" : validity === "invalid" ? "pill--danger" : ""}">${validity}</span>
+          <div class="config-sidebar__title">${translations.config.settings}</div>
+          <span class="pill pill--sm ${validity === translations.common.valid ? "pill--ok" : validity === translations.common.invalid ? "pill--danger" : ""}">${validity}</span>
         </div>
 
         <!-- Search -->
@@ -268,7 +270,7 @@ export function renderConfig(props: ConfigProps) {
           <input
             type="text"
             class="config-search__input"
-            placeholder="Search settings..."
+            placeholder="${translations.config.searchSettings}"
             .value=${props.searchQuery}
             @input=${(e: Event) => props.onSearchChange((e.target as HTMLInputElement).value)}
           />
@@ -287,7 +289,7 @@ export function renderConfig(props: ConfigProps) {
             @click=${() => props.onSectionChange(null)}
           >
             <span class="config-nav__icon">${sidebarIcons.all}</span>
-            <span class="config-nav__label">All Settings</span>
+            <span class="config-nav__label">${translations.common.allSettings}</span>
           </button>
           ${allSections.map(section => html`
             <button
@@ -308,13 +310,13 @@ export function renderConfig(props: ConfigProps) {
               ?disabled=${props.schemaLoading || !props.schema}
               @click=${() => props.onFormModeChange("form")}
             >
-              Form
+              ${translations.common.form}
             </button>
             <button
               class="config-mode-toggle__btn ${props.formMode === "raw" ? "active" : ""}"
               @click=${() => props.onFormModeChange("raw")}
             >
-              Raw
+              ${translations.common.raw}
             </button>
           </div>
         </div>
@@ -326,35 +328,35 @@ export function renderConfig(props: ConfigProps) {
         <div class="config-actions">
           <div class="config-actions__left">
             ${hasChanges ? html`
-              <span class="config-changes-badge">${props.formMode === "raw" ? "Unsaved changes" : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`}</span>
+              <span class="config-changes-badge">${props.formMode === "raw" ? translations.common.noChanges : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`}</span>
             ` : html`
-              <span class="config-status muted">No changes</span>
+              <span class="config-status muted">${translations.common.noChanges}</span>
             `}
           </div>
           <div class="config-actions__right">
             <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onReload}>
-              ${props.loading ? "Loading…" : "Reload"}
+              ${props.loading ? translations.common.loading : translations.common.reload}
             </button>
             <button
               class="btn btn--sm primary"
               ?disabled=${!canSave}
               @click=${props.onSave}
             >
-              ${props.saving ? "Saving…" : "Save"}
+              ${props.saving ? translations.common.loading : translations.common.save}
             </button>
             <button
               class="btn btn--sm"
               ?disabled=${!canApply}
               @click=${props.onApply}
             >
-              ${props.applying ? "Applying…" : "Apply"}
+              ${props.applying ? translations.common.loading : translations.common.apply}
             </button>
             <button
               class="btn btn--sm"
               ?disabled=${!canUpdate}
               @click=${props.onUpdate}
             >
-              ${props.updating ? "Updating…" : "Update"}
+              ${props.updating ? translations.common.loading : translations.common.update}
             </button>
           </div>
         </div>
