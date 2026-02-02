@@ -16,6 +16,7 @@ ui/src/ui/__screenshots__/
 ui/playwright-report/
 ui/test-results/
 /huggingface
+/clawdbot-feishu-main
 # Bun build artifacts
 *.bun-build
 apps/macos/.build/
