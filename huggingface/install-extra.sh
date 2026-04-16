@@ -130,6 +130,9 @@ sync_search_tools() {
 
 hf_log INFO "running install-extra hook"
 
+# 浏览器缓存、第三方插件安装产物、搜索技能目录都保留在运行层，避免把大体积安装内容同步进 HF 桶。
+# 这样会牺牲首次启动后的部分复用速度，但能显著减小 /data/openclaw 体积。
+
 sync_openclaw_china_channels
 sync_agent_browser
 sync_search_tools

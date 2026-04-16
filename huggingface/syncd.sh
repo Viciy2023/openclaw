@@ -19,23 +19,19 @@ log_syncd() {
 sync_tier1() {
   hf_acquire_lock sync
   hf_sync_linked_state_to_live
-  hf_write_manifest tier1 ok "synced linked config, credentials, agents, workspace, and skills" \
+  hf_write_manifest tier1 ok "synced linked config, credentials, agents, and workspace" \
     "${OPENCLAW_HF_LIVE_ROOT}" \
     "$(hf_live_path agents)" \
-    "$(hf_live_path workspace)" \
-    "$(hf_live_path skills)"
+    "$(hf_live_path workspace)"
   hf_release_lock sync
 }
 
 sync_tier2() {
   hf_acquire_lock sync
   hf_sync_local_sync_dir cron
-  hf_sync_local_sync_dir extensions
-  hf_write_manifest tier2 ok "synced cron, extensions, and medium-priority runtime state" \
+  hf_write_manifest tier2 ok "synced cron and medium-priority runtime state" \
     "$(hf_runtime_path cron)" \
-    "$(hf_live_path cron)" \
-    "$(hf_runtime_path extensions)" \
-    "$(hf_live_path extensions)"
+    "$(hf_live_path cron)"
   hf_release_lock sync
 }
 

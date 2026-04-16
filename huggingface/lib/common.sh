@@ -16,11 +16,12 @@ OPENCLAW_HF_MANIFEST_HASH_LIMIT_BYTES="${OPENCLAW_HF_MANIFEST_HASH_LIMIT_BYTES:-
 OPENCLAW_HF_CONFIG_CONFLICT_POLICY="${OPENCLAW_HF_CONFIG_CONFLICT_POLICY:-data_wins}"
 OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY="${OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY:-data_wins}"
 OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY="${OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY:-newer_wins}"
+OPENCLAW_HF_LIGHT_MANIFEST_MODE="${OPENCLAW_HF_LIGHT_MANIFEST_MODE:-1}"
 
 OPENCLAW_HF_LINKED_FILES=("openclaw.json" "auth-profiles.json")
-OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "skills" "wecomConfig" "qqbot" "canvas")
-OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media" "extensions")
-OPENCLAW_HF_EXTERNAL_LINKED_DIRS=(".agent-browser")
+OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace")
+OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media")
+OPENCLAW_HF_EXTERNAL_LINKED_DIRS=()
 
 hf_log() {
   local level="$1"
@@ -281,6 +282,18 @@ hf_manifest_for_path() {
   local root_path="$1"
   if [[ ! -e "${root_path}" ]]; then
     printf '[]'
+    return 0
+  fi
+
+  # 轻量模式只记录目录摘要，避免对大目录做文件级遍历后把 sync/ 撑爆。
+  if [[ "${OPENCLAW_HF_LIGHT_MANIFEST_MODE}" == "1" ]]; then
+    local file_count total_bytes latest_mtime
+    file_count=$(find "${root_path}" \( -type f -o -type l \) | wc -l)
+    total_bytes=$(find "${root_path}" -type f -printf '%s\n' 2>/dev/null | awk '{sum += $1} END {print sum + 0}')
+    latest_mtime=$(find "${root_path}" \( -type f -o -type l \) -printf '%T@\n' 2>/dev/null | sort -nr | head -n 1)
+    latest_mtime=${latest_mtime%%.*}
+    latest_mtime=${latest_mtime:-0}
+    printf '[{"path":".","type":"summary","files":%s,"bytes":%s,"latestMtime":%s}]' "${file_count}" "${total_bytes}" "${latest_mtime}"
     return 0
   fi
 
@@ -579,6 +592,7 @@ runtimeRoot=$(hf_escape_json "${OPENCLAW_HF_RUNTIME_ROOT}")
 homeLiveRoot=$(hf_escape_json "${OPENCLAW_HF_HOME_LIVE_ROOT}")
 liveRoot=$(hf_escape_json "${OPENCLAW_HF_LIVE_ROOT}")
 linkMode=$(hf_escape_json "${OPENCLAW_HF_STATE_LINK_MODE}")
+lightManifestMode=$(hf_escape_json "${OPENCLAW_HF_LIGHT_MANIFEST_MODE}")
 configConflictPolicy=$(hf_escape_json "${OPENCLAW_HF_CONFIG_CONFLICT_POLICY}")
 strongDirRestorePolicy=$(hf_escape_json "${OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY}")
 localSyncRestorePolicy=$(hf_escape_json "${OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY}")
