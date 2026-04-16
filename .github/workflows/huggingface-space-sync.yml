@@ -1,0 +1,66 @@
+name: Hugging Face Space Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "huggingface/**"
+      - ".github/workflows/huggingface-space-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: huggingface-space-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-to-hf-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Validate HF secrets
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HF_TOKEN:-}" ]]; then
+            echo "Missing required secret: HF_TOKEN"
+            exit 1
+          fi
+          if [[ -z "${HF_SPACE_REPO:-}" ]]; then
+            echo "Missing required secret: HF_SPACE_REPO"
+            exit 1
+          fi
+
+      - name: Prepare HF Space repo contents
+        run: |
+          set -euo pipefail
+          rm -rf .hf-space-sync
+          mkdir -p .hf-space-sync
+          cp -R huggingface/. .hf-space-sync/
+
+      - name: Publish to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          cd .hf-space-sync
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b main
+          git add -A
+          git commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA}"
+          git remote add origin "https://oauth2:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO}"
+          git push --force origin main
