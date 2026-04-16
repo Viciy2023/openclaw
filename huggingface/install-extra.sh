@@ -4,6 +4,7 @@ set -euo pipefail
 
 OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
 OPENCLAW_CHINA_PLUGIN_PACKAGE="${OPENCLAW_CHINA_PLUGIN_PACKAGE:-@openclaw-china/channels}"
+OPENCLAW_WEIXIN_PLUGIN_PACKAGE="${OPENCLAW_WEIXIN_PLUGIN_PACKAGE:-@tencent-weixin/openclaw-weixin}"
 OPENCLAW_AGENT_BROWSER_PACKAGE="${OPENCLAW_AGENT_BROWSER_PACKAGE:-agent-browser@latest}"
 OPENCLAW_DDG_SKILL="${OPENCLAW_DDG_SKILL:-ddg-web-search}"
 OPENCLAW_N2_SKILL="${OPENCLAW_N2_SKILL:-n2-free-search}"
@@ -46,6 +47,15 @@ has_openclaw_china_channels() {
   return 1
 }
 
+# 检查腾讯微信插件是否已经安装。
+# 这里只做插件安装检测，不处理扫码登录。扫码登录属于交互流程，应在容器启动完成后单独执行。
+has_openclaw_weixin() {
+  if [[ -d "/root/.openclaw/extensions/openclaw-weixin" ]]; then
+    return 0
+  fi
+  return 1
+}
+
 # 在 HF 场景下统一使用“已安装则更新、未安装则安装”的策略。
 # 这样容器每次启动都能自动追到 openclaw-china 的最新版本，同时仍然不依赖交互式 china setup。
 sync_openclaw_china_channels() {
@@ -57,6 +67,20 @@ sync_openclaw_china_channels() {
 
   hf_log INFO "installing OpenClaw China channels plugin: ${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
   openclaw plugins install "${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
+}
+
+# 安装腾讯微信插件。
+# 这里仅负责插件本体安装；真正的二维码扫码登录由 start-hf.sh 根据
+# OPENCLAW_WEIXIN_LOGIN_ON_START=OPEN/CLOLD 开关决定是否在启动阶段触发。
+# 这样安装层与登录层职责分开，避免把交互式登录硬塞进安装逻辑里。
+sync_openclaw_weixin() {
+  if has_openclaw_weixin; then
+    hf_log INFO "OpenClaw Weixin plugin already installed; skipping reinstall"
+    return 0
+  fi
+
+  hf_log INFO "installing OpenClaw Weixin plugin: ${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}"
+  run_with_retry "openclaw-weixin plugin install" openclaw plugins install "${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}"
 }
 
 # 检查 agent-browser CLI 是否已可用。
@@ -134,6 +158,7 @@ hf_log INFO "running install-extra hook"
 # 这样会牺牲首次启动后的部分复用速度，但能显著减小 /data/openclaw 体积。
 
 sync_openclaw_china_channels
+sync_openclaw_weixin
 sync_agent_browser
 sync_search_tools
 

@@ -20,6 +20,42 @@ startup_log() {
   fi
 }
 
+# 微信登录开关解析。
+# 兼容你要求的 OPEN / CLOLD 写法，同时也顺手兼容 CLOSED，避免手误导致行为不确定。
+resolve_weixin_login_mode() {
+  local raw_mode
+  raw_mode="${OPENCLAW_WEIXIN_LOGIN_ON_START:-CLOLD}"
+  raw_mode="$(printf '%s' "${raw_mode}" | tr '[:lower:]' '[:upper:]')"
+
+  case "${raw_mode}" in
+    OPEN)
+      printf 'OPEN\n'
+      ;;
+    CLOLD|CLOSED)
+      printf 'CLOLD\n'
+      ;;
+    *)
+      startup_log WARN "invalid OPENCLAW_WEIXIN_LOGIN_ON_START=${raw_mode}; expected OPEN or CLOLD, defaulting to CLOLD"
+      printf 'CLOLD\n'
+      ;;
+  esac
+}
+
+# 按需触发微信扫码登录。
+# HF 场景无法依赖你手动进容器执行命令，所以这里用环境变量开关控制是否在启动阶段进入扫码登录流程。
+run_weixin_login_if_requested() {
+  local login_mode
+  login_mode="$(resolve_weixin_login_mode)"
+
+  if [[ "${login_mode}" != "OPEN" ]]; then
+    startup_log INFO "weixin login on start is disabled"
+    return 0
+  fi
+
+  startup_log INFO "OPENCLAW_WEIXIN_LOGIN_ON_START=OPEN; starting Weixin QR login flow"
+  openclaw channels login --channel openclaw-weixin
+}
+
 notify_wecom_webhook() {
   local content="$1"
   local webhook_key
@@ -618,6 +654,7 @@ print_outbound_ip
 restore_runtime_state
 clean_stale_china_channels_config
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
+run_weixin_login_if_requested
 seed_hf_gateway_config
 seed_hf_model_config
 seed_hf_china_channels_config
