@@ -320,18 +320,25 @@ if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
   };
 }
 
-if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
-  parsed.channels["feishu-china"] = {
-    enabled: true,
+  if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
+    parsed.channels["feishu-china"] = {
+      enabled: true,
     appId: env.FEISHU_APP_ID,
     appSecret: env.FEISHU_APP_SECRET,
     verificationToken: env.FEISHU_VERIFICATION_TOKEN,
     encryptKey: env.FEISHU_ENCRYPT_KEY,
     sendMarkdownAsCard: true,
-  };
-}
+    };
+  }
 
-fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+  // 将第三方插件显式加入信任名单，避免每次启动都因为 channels 插件来源未锁定而告警。
+  parsed.plugins = ensureObject(parsed.plugins);
+  parsed.plugins.allow = Array.isArray(parsed.plugins.allow) ? parsed.plugins.allow : [];
+  if (!parsed.plugins.allow.includes("channels")) {
+    parsed.plugins.allow.push("channels");
+  }
+
+  fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
   startup_log INFO "seeded OpenClaw China channel config from HF environment"
@@ -405,6 +412,48 @@ fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
   startup_log INFO "seeded search provider config from HF environment"
+}
+
+seed_hf_skill_runtime_config() {
+  local config_path
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+
+  node - <<'EOF' "${config_path}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+const ensureObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+
+parsed.skills = ensureObject(parsed.skills);
+parsed.skills.load = ensureObject(parsed.skills.load);
+parsed.skills.load.extraDirs = Array.isArray(parsed.skills.load.extraDirs)
+  ? parsed.skills.load.extraDirs
+  : [];
+
+if (!parsed.skills.load.extraDirs.includes("/root/.openclaw/workspace/skills")) {
+  parsed.skills.load.extraDirs.push("/root/.openclaw/workspace/skills");
+}
+
+parsed.agents = ensureObject(parsed.agents);
+parsed.agents.defaults = ensureObject(parsed.agents.defaults);
+parsed.agents.defaults.skills = Array.isArray(parsed.agents.defaults.skills)
+  ? parsed.agents.defaults.skills
+  : [];
+
+for (const skillName of ["ddg-web-search", "n2-free-search"]) {
+  if (!parsed.agents.defaults.skills.includes(skillName)) {
+    parsed.agents.defaults.skills.push(skillName);
+  }
+}
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "seeded skill runtime config for ddg-web-search and n2-free-search"
 }
 
 restore_runtime_state() {
@@ -486,5 +535,6 @@ seed_hf_gateway_config
 seed_hf_model_config
 seed_hf_china_channels_config
 seed_hf_search_provider_config
+seed_hf_skill_runtime_config
 start_syncd
 run_gateway

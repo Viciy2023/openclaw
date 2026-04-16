@@ -7,6 +7,7 @@ OPENCLAW_HF_LIVE_ROOT="${OPENCLAW_HF_LIVE_ROOT:-${OPENCLAW_HF_DATA_ROOT}/live/.o
 OPENCLAW_HF_SYNC_ROOT="${OPENCLAW_HF_SYNC_ROOT:-${OPENCLAW_HF_DATA_ROOT}/sync}"
 OPENCLAW_HF_LOG_ROOT="${OPENCLAW_HF_LOG_ROOT:-${OPENCLAW_HF_DATA_ROOT}/logs}"
 OPENCLAW_HF_INSTALL_ROOT="${OPENCLAW_HF_INSTALL_ROOT:-${OPENCLAW_HF_DATA_ROOT}/install}"
+OPENCLAW_HF_HOME_LIVE_ROOT="${OPENCLAW_HF_HOME_LIVE_ROOT:-${OPENCLAW_HF_DATA_ROOT}/live/root-home}"
 OPENCLAW_HF_RUNTIME_HOME="${OPENCLAW_HF_RUNTIME_HOME:-${HOME:-/root}}"
 OPENCLAW_HF_RUNTIME_ROOT="${OPENCLAW_HF_RUNTIME_ROOT:-${OPENCLAW_HF_RUNTIME_HOME}/.openclaw}"
 OPENCLAW_HF_STATE_LINK_MODE="${OPENCLAW_HF_STATE_LINK_MODE:-mixed}"
@@ -17,8 +18,9 @@ OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY="${OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY:-
 OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY="${OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY:-newer_wins}"
 
 OPENCLAW_HF_LINKED_FILES=("openclaw.json" "auth-profiles.json")
-OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "skills")
+OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "skills" "extensions" "wecomConfig" "qqbot" "canvas")
 OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media")
+OPENCLAW_HF_EXTERNAL_LINKED_DIRS=(".agent-browser")
 
 hf_log() {
   local level="$1"
@@ -62,6 +64,7 @@ hf_escape_json() {
 hf_ensure_tree() {
   mkdir -p \
     "${OPENCLAW_HF_LIVE_ROOT}" \
+    "${OPENCLAW_HF_HOME_LIVE_ROOT}" \
     "${OPENCLAW_HF_SYNC_ROOT}/manifests" \
     "${OPENCLAW_HF_SYNC_ROOT}/locks" \
     "${OPENCLAW_HF_SYNC_ROOT}/queue" \
@@ -364,6 +367,11 @@ hf_live_path() {
   printf '%s/%s' "${OPENCLAW_HF_LIVE_ROOT}" "${subpath}"
 }
 
+hf_home_live_path() {
+  local subpath="$1"
+  printf '%s/%s' "${OPENCLAW_HF_HOME_LIVE_ROOT}" "${subpath}"
+}
+
 hf_prepare_runtime_dir() {
   local subpath="$1"
   mkdir -p "$(hf_runtime_path "${subpath}")"
@@ -471,6 +479,20 @@ hf_prepare_linked_state() {
       hf_rsync_dir_no_delete "${live_dir}" "${runtime_dir}"
     fi
   done
+
+  # 这类目录不在 ~/.openclaw 下，但对浏览器工具与插件运行态同样关键，需要单独持久化到 /data。
+  for dir_name in "${OPENCLAW_HF_EXTERNAL_LINKED_DIRS[@]}"; do
+    local runtime_dir live_dir
+    runtime_dir="${OPENCLAW_HF_RUNTIME_HOME}/${dir_name}"
+    live_dir="$(hf_home_live_path "${dir_name}")"
+    hf_materialize_live_dir "${runtime_dir}" "${live_dir}"
+    if [[ "${OPENCLAW_HF_STATE_LINK_MODE}" != "copy" ]]; then
+      hf_link_path "${runtime_dir}" "${live_dir}"
+    else
+      mkdir -p "${runtime_dir}"
+      hf_rsync_dir_no_delete "${live_dir}" "${runtime_dir}"
+    fi
+  done
 }
 
 hf_restore_local_sync_dir() {
@@ -545,6 +567,7 @@ hf_sync_local_sync_dir() {
 hf_build_state_summary() {
   cat <<EOF
 runtimeRoot=$(hf_escape_json "${OPENCLAW_HF_RUNTIME_ROOT}")
+homeLiveRoot=$(hf_escape_json "${OPENCLAW_HF_HOME_LIVE_ROOT}")
 liveRoot=$(hf_escape_json "${OPENCLAW_HF_LIVE_ROOT}")
 linkMode=$(hf_escape_json "${OPENCLAW_HF_STATE_LINK_MODE}")
 configConflictPolicy=$(hf_escape_json "${OPENCLAW_HF_CONFIG_CONFLICT_POLICY}")
@@ -552,6 +575,7 @@ strongDirRestorePolicy=$(hf_escape_json "${OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY
 localSyncRestorePolicy=$(hf_escape_json "${OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY}")
 linkedFiles=$(hf_escape_json "$(hf_join_by ',' "${OPENCLAW_HF_LINKED_FILES[@]}")")
 linkedDirs=$(hf_escape_json "$(hf_join_by ',' "${OPENCLAW_HF_LINKED_DIRS[@]}")")
+externalLinkedDirs=$(hf_escape_json "$(hf_join_by ',' "${OPENCLAW_HF_EXTERNAL_LINKED_DIRS[@]}")")
 localSyncDirs=$(hf_escape_json "$(hf_join_by ',' "${OPENCLAW_HF_LOCAL_SYNC_DIRS[@]}")")
 EOF
 }

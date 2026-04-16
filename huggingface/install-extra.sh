@@ -40,35 +40,10 @@ run_with_retry() {
 # 检查统一中国渠道插件是否已经安装。
 # 这里优先读取 `openclaw plugins list --json`，避免重复安装导致每次启动都走 npm。
 has_openclaw_china_channels() {
-  local plugins_json
-  plugins_json="$(openclaw plugins list --json 2>/dev/null || true)"
-  [[ -z "${plugins_json}" ]] && return 1
-
-  node - <<'EOF' "${plugins_json}" "${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
-const pluginsJson = process.argv[2];
-const targetPackage = process.argv[3];
-
-let parsed;
-try {
-  parsed = JSON.parse(pluginsJson);
-} catch {
-  process.exit(1);
-}
-
-if (!Array.isArray(parsed)) {
-  process.exit(1);
-}
-
-const found = parsed.some((entry) => {
-  if (!entry || typeof entry !== "object") return false;
-  const id = typeof entry.id === "string" ? entry.id : "";
-  const packageName = typeof entry.packageName === "string" ? entry.packageName : "";
-  const source = typeof entry.source === "string" ? entry.source : "";
-  return id === "channels" || packageName === targetPackage || source.includes(targetPackage);
-});
-
-process.exit(found ? 0 : 1);
-EOF
+  if [[ -d "/root/.openclaw/extensions/channels" ]]; then
+    return 0
+  fi
+  return 1
 }
 
 # 在 HF 场景下统一使用“已安装则更新、未安装则安装”的策略。
@@ -127,9 +102,9 @@ sync_tavily_python() {
 # ddg-web-search 与 n2-free-search 都按技能安装，便于后续被 OpenClaw 工具链发现。
 sync_clawhub_skill() {
   local skill_name="$1"
-  local target_dir="/root/.openclaw/skills/${skill_name}"
+  local target_dir="/root/.openclaw/workspace/skills/${skill_name}"
 
-  mkdir -p /root/.openclaw/skills
+  mkdir -p /root/.openclaw/workspace/skills
 
   if [[ -d "${target_dir}" ]]; then
     hf_log INFO "skill ${skill_name} already present; reinstalling latest version"
@@ -137,7 +112,7 @@ sync_clawhub_skill() {
     hf_log INFO "installing skill ${skill_name}"
   fi
 
-  run_with_retry "clawhub install ${skill_name}" bash -lc "cd /root/.openclaw && npx -y clawhub@latest install ${skill_name} --force"
+  run_with_retry "clawhub install ${skill_name}" bash -lc "cd /root/.openclaw/workspace && npx -y clawhub@latest install ${skill_name} --force"
 }
 
 # 安装需要的搜索类工具与技能。
