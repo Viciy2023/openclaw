@@ -161,6 +161,25 @@ hf_acquire_lock() {
   local lock_dir="${OPENCLAW_HF_SYNC_ROOT}/locks/${name}.lock"
   local waited=0
   while ! mkdir "${lock_dir}" 2>/dev/null; do
+    local pid_file held_pid
+    pid_file="${lock_dir}/pid"
+    held_pid=""
+    if [[ -f "${pid_file}" ]]; then
+      held_pid="$(tr -d '[:space:]' < "${pid_file}" 2>/dev/null || true)"
+    fi
+
+    if [[ -z "${held_pid}" ]]; then
+      hf_log WARN "reaping stale lock ${name} with missing pid metadata"
+      rm -rf "${lock_dir}"
+      continue
+    fi
+
+    if ! kill -0 "${held_pid}" 2>/dev/null; then
+      hf_log WARN "reaping stale lock ${name} held by dead pid ${held_pid}"
+      rm -rf "${lock_dir}"
+      continue
+    fi
+
     waited=$((waited + 1))
     if (( waited > 120 )); then
       hf_log ERROR "timed out waiting for lock ${name}"

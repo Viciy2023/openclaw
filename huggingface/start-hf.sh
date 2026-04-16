@@ -223,6 +223,7 @@ EOF
 restore_runtime_state() {
   startup_log INFO "restoring runtime state"
   hf_acquire_lock startup
+  trap 'hf_release_lock startup' RETURN
 
   hf_snapshot_path_if_exists "${OPENCLAW_HF_RUNTIME_ROOT}" startup-runtime-root
 
@@ -243,8 +244,6 @@ $(hf_build_state_summary)
 EOF
 
   write_runtime_manifests
-
-  hf_release_lock startup
 }
 
 start_syncd() {
