@@ -443,23 +443,26 @@ const ensureObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 
 parsed.channels = ensureObject(parsed.channels);
-for (const staleChannelId of ["wecom", "wecom-app", "qqbot", "feishu-china"]) {
-  if (Object.prototype.hasOwnProperty.call(parsed.channels, staleChannelId)) {
-    delete parsed.channels[staleChannelId];
+  for (const staleChannelId of ["wecom", "wecom-app", "qqbot", "feishu-china", "openclaw-weixin"]) {
+    if (Object.prototype.hasOwnProperty.call(parsed.channels, staleChannelId)) {
+      delete parsed.channels[staleChannelId];
+    }
   }
-}
 
-parsed.plugins = ensureObject(parsed.plugins);
-parsed.plugins.entries = ensureObject(parsed.plugins.entries);
-if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
-  delete parsed.plugins.entries.channels;
-}
-
-if (Array.isArray(parsed.plugins.allow)) {
-  parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels");
-  if (parsed.plugins.allow.length === 0) {
-    delete parsed.plugins.allow;
+  parsed.plugins = ensureObject(parsed.plugins);
+  parsed.plugins.entries = ensureObject(parsed.plugins.entries);
+  if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
+    delete parsed.plugins.entries.channels;
   }
+  if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "openclaw-weixin")) {
+    delete parsed.plugins.entries["openclaw-weixin"];
+  }
+
+  if (Array.isArray(parsed.plugins.allow)) {
+    parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels" && entry !== "openclaw-weixin");
+    if (parsed.plugins.allow.length === 0) {
+      delete parsed.plugins.allow;
+    }
 }
 
 fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
