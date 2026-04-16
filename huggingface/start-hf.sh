@@ -27,6 +27,60 @@ write_runtime_manifests() {
     "${OPENCLAW_HF_INSTALL_ROOT}"
 }
 
+seed_hf_gateway_config() {
+  local config_path
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+  mkdir -p "$(dirname "${config_path}")"
+
+  if [[ ! -f "${config_path}" ]]; then
+    cat > "${config_path}" <<'EOF'
+{
+  "gateway": {
+    "mode": "local",
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  }
+}
+EOF
+    startup_log INFO "seeded new HF gateway config at ${config_path}"
+    return 0
+  fi
+
+  node - <<'EOF' "${config_path}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  throw new Error("openclaw.json root must be an object");
+}
+
+parsed.gateway = typeof parsed.gateway === "object" && parsed.gateway !== null && !Array.isArray(parsed.gateway)
+  ? parsed.gateway
+  : {};
+
+if (parsed.gateway.mode == null) {
+  parsed.gateway.mode = "local";
+}
+
+parsed.gateway.controlUi =
+  typeof parsed.gateway.controlUi === "object" && parsed.gateway.controlUi !== null && !Array.isArray(parsed.gateway.controlUi)
+    ? parsed.gateway.controlUi
+    : {};
+
+if (parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback !== true) {
+  parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
+}
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "ensured HF gateway control UI fallback config in ${config_path}"
+}
+
 restore_runtime_state() {
   startup_log INFO "restoring runtime state"
   hf_acquire_lock startup
@@ -66,21 +120,17 @@ start_syncd() {
 
 run_gateway() {
   local gateway_port gateway_bind
-  local gateway_extra_args
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
   gateway_bind="${OPENCLAW_HF_GATEWAY_BIND:-lan}"
-  gateway_extra_args="${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}"
-
-  if [[ -z "${gateway_extra_args}" ]]; then
-    gateway_extra_args='--set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true'
-  else
-    gateway_extra_args="${gateway_extra_args} --set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true"
-  fi
 
   startup_log INFO "starting OpenClaw gateway as root-global install"
 
-  # shellcheck disable=SC2086
-  exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${gateway_extra_args}
+  if [[ -n "${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}" ]]; then
+    # shellcheck disable=SC2086
+    exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${OPENCLAW_HF_GATEWAY_EXTRA_ARGS}
+  fi
+
+  exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured
 }
 
 shutdown() {
@@ -106,5 +156,6 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 restore_runtime_state
+seed_hf_gateway_config
 start_syncd
 run_gateway
