@@ -1,3 +1,12 @@
+---
+title: OpenClaw Worker
+emoji: "🦀"
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Hugging Face Deployment Layer
 
 This directory contains a Hugging Face Space packaging layer for OpenClaw.
