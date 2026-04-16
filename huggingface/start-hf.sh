@@ -337,6 +337,76 @@ EOF
   startup_log INFO "seeded OpenClaw China channel config from HF environment"
 }
 
+seed_hf_search_provider_config() {
+  local config_path
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+
+  node - <<'EOF' "${config_path}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+const ensureObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+
+const env = process.env;
+const provider = (env.OPENCLAW_WEB_SEARCH_PROVIDER || "tavily").toLowerCase();
+
+parsed.tools = ensureObject(parsed.tools);
+parsed.tools.web = ensureObject(parsed.tools.web);
+parsed.tools.web.search = ensureObject(parsed.tools.web.search);
+parsed.plugins = ensureObject(parsed.plugins);
+parsed.plugins.entries = ensureObject(parsed.plugins.entries);
+
+if (provider === "tavily") {
+  parsed.tools.web.search.enabled = true;
+  parsed.tools.web.search.provider = "tavily";
+  parsed.plugins.entries.tavily = ensureObject(parsed.plugins.entries.tavily);
+  parsed.plugins.entries.tavily.enabled = true;
+  parsed.plugins.entries.tavily.config = ensureObject(parsed.plugins.entries.tavily.config);
+  parsed.plugins.entries.tavily.config.webSearch = {
+    apiKey: {
+      source: "env",
+      provider: "default",
+      id: "TAVILY_API_KEY",
+    },
+    baseUrl: "https://api.tavily.com",
+  };
+}
+
+if (provider === "searxng") {
+  parsed.tools.web.search.enabled = true;
+  parsed.tools.web.search.provider = "searxng";
+  parsed.plugins.entries.searxng = ensureObject(parsed.plugins.entries.searxng);
+  parsed.plugins.entries.searxng.enabled = true;
+  parsed.plugins.entries.searxng.config = ensureObject(parsed.plugins.entries.searxng.config);
+  parsed.plugins.entries.searxng.config.webSearch = {
+    baseUrl: {
+      source: "env",
+      provider: "default",
+      id: "SEARXNG_BASE_URL",
+    },
+  };
+}
+
+parsed.env = ensureObject(parsed.env);
+parsed.env.vars = ensureObject(parsed.env.vars);
+parsed.env.vars.OPENCLAW_WEB_SEARCH_PROVIDER = provider;
+if (env.SEARXNG_URL) parsed.env.vars.SEARXNG_URL = env.SEARXNG_URL;
+if (env.SEARXNG_BASE_URL) parsed.env.vars.SEARXNG_BASE_URL = env.SEARXNG_BASE_URL;
+if (env.SEARXNG_URL_BACKUP_1) parsed.env.vars.SEARXNG_URL_BACKUP_1 = env.SEARXNG_URL_BACKUP_1;
+if (env.SEARXNG_URL_BACKUP_2) parsed.env.vars.SEARXNG_URL_BACKUP_2 = env.SEARXNG_URL_BACKUP_2;
+if (env.SEARXNG_URL_BACKUP_3) parsed.env.vars.SEARXNG_URL_BACKUP_3 = env.SEARXNG_URL_BACKUP_3;
+if (env.SEARXNG_URL_BACKUP_4) parsed.env.vars.SEARXNG_URL_BACKUP_4 = env.SEARXNG_URL_BACKUP_4;
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "seeded search provider config from HF environment"
+}
+
 restore_runtime_state() {
   startup_log INFO "restoring runtime state"
   hf_acquire_lock startup
@@ -415,5 +485,6 @@ restore_runtime_state
 seed_hf_gateway_config
 seed_hf_model_config
 seed_hf_china_channels_config
+seed_hf_search_provider_config
 start_syncd
 run_gateway
