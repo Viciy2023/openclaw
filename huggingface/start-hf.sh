@@ -349,6 +349,46 @@ EOF
   startup_log INFO "seeded OpenClaw China channel config from HF environment"
 }
 
+clean_stale_china_channels_config() {
+  local config_path
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+
+  node - <<'EOF' "${config_path}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+const ensureObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+
+parsed.channels = ensureObject(parsed.channels);
+for (const staleChannelId of ["wecom", "wecom-app", "qqbot", "feishu-china"]) {
+  if (Object.prototype.hasOwnProperty.call(parsed.channels, staleChannelId)) {
+    delete parsed.channels[staleChannelId];
+  }
+}
+
+parsed.plugins = ensureObject(parsed.plugins);
+parsed.plugins.entries = ensureObject(parsed.plugins.entries);
+if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
+  delete parsed.plugins.entries.channels;
+}
+
+if (Array.isArray(parsed.plugins.allow)) {
+  parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels");
+  if (parsed.plugins.allow.length === 0) {
+    delete parsed.plugins.allow;
+  }
+}
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "cleaned stale China channel config before plugin install"
+}
+
 seed_hf_search_provider_config() {
   local config_path
   config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
@@ -535,10 +575,11 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
 restore_runtime_state
-seed_hf_china_channels_config
+clean_stale_china_channels_config
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 seed_hf_gateway_config
 seed_hf_model_config
+seed_hf_china_channels_config
 seed_hf_search_provider_config
 seed_hf_skill_runtime_config
 start_syncd
