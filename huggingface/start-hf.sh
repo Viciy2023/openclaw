@@ -20,6 +20,19 @@ startup_log() {
   fi
 }
 
+print_outbound_ip() {
+  local current_ip
+  current_ip="$(curl -s --max-time 10 https://ifconfig.me || curl -s --max-time 10 https://api.ipify.org || echo "unknown")"
+
+  printf '\n'
+  printf '════════════════════════════════════════════════════════════════\n'
+  printf '🌐 HF Space Outbound IP: %s\n' "${current_ip}"
+  printf '════════════════════════════════════════════════════════════════\n'
+  printf '\n'
+
+  startup_log INFO "HF Space outbound IP: ${current_ip}"
+}
+
 write_runtime_manifests() {
   hf_write_manifest runtime-startup ok "runtime state after startup restore" \
     "${OPENCLAW_HF_RUNTIME_ROOT}" \
@@ -294,6 +307,7 @@ startup_log INFO "wrapper initialized"
 startup_log INFO "runtime root: ${OPENCLAW_HF_RUNTIME_ROOT}"
 startup_log INFO "live root: ${OPENCLAW_HF_LIVE_ROOT}"
 startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
+print_outbound_ip
 
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 restore_runtime_state

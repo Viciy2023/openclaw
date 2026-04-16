@@ -15,6 +15,7 @@ RUN apt-get update && \
       bash \
       ca-certificates \
       coreutils \
+      curl \
       findutils \
       procps \
       rsync \
