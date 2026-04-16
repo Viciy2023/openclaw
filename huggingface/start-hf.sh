@@ -23,16 +23,19 @@ startup_log() {
 notify_wecom_webhook() {
   local content="$1"
   local webhook_key
+  local payload
   webhook_key="${WECOM_WEBHOOK_KEY:-}"
 
   if [[ -z "${webhook_key}" ]]; then
     return 0
   fi
 
+  payload="$(node -e 'const value = process.argv[1]; process.stdout.write(JSON.stringify({ msgtype: "text", text: { content: value } }));' "${content}")"
+
   curl -sS --max-time 10 \
     -H "Content-Type: application/json" \
     -X POST \
-    -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"${content//"/\\\"}\"}}" \
+    -d "${payload}" \
     "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${webhook_key}" >/dev/null || true
 }
 
