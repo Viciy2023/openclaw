@@ -549,8 +549,6 @@ restore_runtime_state() {
   hf_acquire_lock startup
   trap 'hf_release_lock startup' RETURN
 
-  hf_snapshot_path_if_exists "${OPENCLAW_HF_RUNTIME_ROOT}" startup-runtime-root
-
   hf_prepare_linked_state
 
   local dir_name

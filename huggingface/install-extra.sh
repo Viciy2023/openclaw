@@ -50,8 +50,8 @@ has_openclaw_china_channels() {
 # 这样容器每次启动都能自动追到 openclaw-china 的最新版本，同时仍然不依赖交互式 china setup。
 sync_openclaw_china_channels() {
   if has_openclaw_china_channels; then
-    hf_log INFO "OpenClaw China channels plugin already installed; updating to latest release"
-    openclaw plugins update channels
+    # 插件目录已存在时直接复用，避免每次启动都联网 update 拖慢 HF 冷启动。
+    hf_log INFO "OpenClaw China channels plugin already installed; skipping reinstall"
     return 0
   fi
 
@@ -68,11 +68,15 @@ has_agent_browser() {
 # 该工具是 HF 环境下必须启用的浏览器能力。
 sync_agent_browser() {
   if has_agent_browser; then
-    hf_log INFO "agent-browser already installed; refreshing to latest release"
-    run_with_retry "agent-browser npm update" npm install -g "${OPENCLAW_AGENT_BROWSER_PACKAGE}"
+    hf_log INFO "agent-browser already installed; skipping npm reinstall"
   else
     hf_log INFO "installing agent-browser CLI: ${OPENCLAW_AGENT_BROWSER_PACKAGE}"
     run_with_retry "agent-browser npm install" npm install -g "${OPENCLAW_AGENT_BROWSER_PACKAGE}"
+  fi
+
+  if [[ -d "/root/.agent-browser/browsers" ]] && find /root/.agent-browser/browsers -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+    hf_log INFO "agent-browser browser payload already present; skipping browser reinstall"
+    return 0
   fi
 
   run_with_retry "agent-browser browser install" agent-browser install --with-deps
@@ -90,10 +94,11 @@ EOF
 # HF 已通过环境变量提供 TAVILY_API_KEY，这里只负责安装 SDK。
 sync_tavily_python() {
   if has_tavily_python; then
-    hf_log INFO "tavily-python already installed; refreshing package"
-  else
-    hf_log INFO "installing tavily-python package"
+    hf_log INFO "tavily-python already installed; skipping pip reinstall"
+    return 0
   fi
+
+  hf_log INFO "installing tavily-python package"
 
   run_with_retry "tavily-python pip install" python3 -m pip install --no-cache-dir --break-system-packages --upgrade "${OPENCLAW_TAVILY_PACKAGE}"
 }
@@ -107,10 +112,11 @@ sync_clawhub_skill() {
   mkdir -p /root/.openclaw/workspace/skills
 
   if [[ -d "${target_dir}" ]]; then
-    hf_log INFO "skill ${skill_name} already present; reinstalling latest version"
-  else
-    hf_log INFO "installing skill ${skill_name}"
+    hf_log INFO "skill ${skill_name} already present; skipping reinstall"
+    return 0
   fi
+
+  hf_log INFO "installing skill ${skill_name}"
 
   run_with_retry "clawhub install ${skill_name}" bash -lc "cd /root/.openclaw/workspace && npx -y clawhub@latest install ${skill_name} --force"
 }
