@@ -20,6 +20,22 @@ startup_log() {
   fi
 }
 
+notify_wecom_webhook() {
+  local content="$1"
+  local webhook_key
+  webhook_key="${WECOM_WEBHOOK_KEY:-}"
+
+  if [[ -z "${webhook_key}" ]]; then
+    return 0
+  fi
+
+  curl -sS --max-time 10 \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"${content//"/\\\"}\"}}" \
+    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${webhook_key}" >/dev/null || true
+}
+
 print_outbound_ip() {
   local current_ip
   current_ip="$(curl -s --max-time 10 https://ifconfig.me || curl -s --max-time 10 https://api.ipify.org || echo "unknown")"
@@ -31,6 +47,8 @@ print_outbound_ip() {
   printf '\n'
 
   startup_log INFO "HF Space outbound IP: ${current_ip}"
+  # 将 HF 当前出口 IP 发到企业微信群机器人，便于你及时更新白名单。
+  notify_wecom_webhook "HF Space Outbound IP: ${current_ip}"
 }
 
 write_runtime_manifests() {
@@ -253,6 +271,8 @@ const ensureObject = (value) =>
 const env = process.env;
 
 parsed.channels = ensureObject(parsed.channels);
+parsed.env = ensureObject(parsed.env);
+parsed.env.vars = ensureObject(parsed.env.vars);
 
 if (env.WECOM_WS_BOT_ID && env.WECOM_WS_SECRET) {
   parsed.channels.wecom = {
@@ -261,6 +281,8 @@ if (env.WECOM_WS_BOT_ID && env.WECOM_WS_SECRET) {
     botId: env.WECOM_WS_BOT_ID,
     secret: env.WECOM_WS_SECRET,
   };
+  parsed.env.vars.WECOM_WS_BOT_ID = env.WECOM_WS_BOT_ID;
+  parsed.env.vars.WECOM_WS_SECRET = env.WECOM_WS_SECRET;
 }
 
 if (
@@ -291,6 +313,11 @@ if (
       secretKey: env.WECOM_APP_ASR_SECRET_KEY,
     },
   };
+  parsed.env.vars.WECOM_APP_TOKEN = env.WECOM_APP_TOKEN;
+  parsed.env.vars.WECOM_APP_AES_KEY = env.WECOM_APP_AES_KEY;
+  parsed.env.vars.WECOM_APP_SECRET = env.WECOM_APP_SECRET;
+  parsed.env.vars.WECOM_APP_AGENTID = env.WECOM_APP_AGENTID;
+  parsed.env.vars.WECOM_CORP_ID = env.WECOM_CORP_ID;
 }
 
 if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
@@ -320,6 +347,8 @@ if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
       secretKey: env.QQBOT_ASR_SECRET_KEY,
     },
   };
+  parsed.env.vars.QQBOT_APP_ID = env.QQBOT_APP_ID;
+  parsed.env.vars.QQBOT_CLIENT_SECRET = env.QQBOT_CLIENT_SECRET;
 }
 
 // 如果历史配置里存在 core 原生 qqbot 入口，这里清掉，避免和 channels 插件重复注册 qqbot。
@@ -338,6 +367,10 @@ if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN 
     encryptKey: env.FEISHU_ENCRYPT_KEY,
     sendMarkdownAsCard: true,
   };
+  parsed.env.vars.FEISHU_APP_ID = env.FEISHU_APP_ID;
+  parsed.env.vars.FEISHU_APP_SECRET = env.FEISHU_APP_SECRET;
+  parsed.env.vars.FEISHU_VERIFICATION_TOKEN = env.FEISHU_VERIFICATION_TOKEN;
+  parsed.env.vars.FEISHU_ENCRYPT_KEY = env.FEISHU_ENCRYPT_KEY;
 }
 
 if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
