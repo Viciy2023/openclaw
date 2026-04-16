@@ -294,6 +294,8 @@ if (
 }
 
 if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
+  // 当前 HF China 统一渠道插件已经内置 qqbot，避免与主配置里可能存在的原生 qqbot 注册冲突。
+  // 这里仍把 qqbot 的运行参数写入 channels.qqbot，由 China 插件接管。
   parsed.channels.qqbot = {
     enabled: true,
     appId: env.QQBOT_APP_ID,
@@ -320,6 +322,13 @@ if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
   };
 }
 
+// 如果历史配置里存在 core 原生 qqbot 入口，这里清掉，避免和 channels 插件重复注册 qqbot。
+parsed.plugins = ensureObject(parsed.plugins);
+parsed.plugins.entries = ensureObject(parsed.plugins.entries);
+if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "qqbot")) {
+  delete parsed.plugins.entries.qqbot;
+}
+
 if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
   parsed.channels["feishu-china"] = {
     enabled: true,
@@ -331,8 +340,6 @@ if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN 
   };
 }
 
-parsed.plugins = ensureObject(parsed.plugins);
-parsed.plugins.entries = ensureObject(parsed.plugins.entries);
 if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
   delete parsed.plugins.entries.channels;
 }

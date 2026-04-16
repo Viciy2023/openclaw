@@ -561,6 +561,15 @@ hf_sync_local_sync_dir() {
   runtime_dir="$(hf_runtime_path "${dir_name}")"
   live_dir="$(hf_live_path "${dir_name}")"
   mkdir -p "${runtime_dir}" "${live_dir}"
+
+  # extensions 目录包含大量 node_modules 文件，HF 桶上的覆盖写经常触发 rsync mkstemp 权限问题。
+  # 这里改成“先清空目标，再整目录复制”的方式，牺牲一点性能换稳定同步。
+  if [[ "${dir_name}" == "extensions" ]]; then
+    rm -rf "${live_dir}"/*
+    cp -a "${runtime_dir}/." "${live_dir}/"
+    return 0
+  fi
+
   hf_rsync_dir_no_delete "${runtime_dir}" "${live_dir}"
 }
 
