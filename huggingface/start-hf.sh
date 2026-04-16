@@ -7,7 +7,6 @@ OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
 SYNC_PID=""
-GATEWAY_PID=""
 STARTUP_LOG_FILE=""
 
 startup_log() {
@@ -74,24 +73,15 @@ run_gateway() {
 
   if [[ -n "${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}" ]]; then
     # shellcheck disable=SC2086
-    openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${OPENCLAW_HF_GATEWAY_EXTRA_ARGS} &
-    GATEWAY_PID="$!"
-    wait "${GATEWAY_PID}"
-    return $?
+    exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${OPENCLAW_HF_GATEWAY_EXTRA_ARGS}
   fi
 
-  openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured &
-  GATEWAY_PID="$!"
-  wait "${GATEWAY_PID}"
+  exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured
 }
 
 shutdown() {
   local exit_code=$?
   startup_log INFO "gateway wrapper shutting down"
-  if [[ -n "${GATEWAY_PID}" ]] && kill -0 "${GATEWAY_PID}" 2>/dev/null; then
-    kill -TERM "${GATEWAY_PID}" 2>/dev/null || true
-    wait "${GATEWAY_PID}" 2>/dev/null || true
-  fi
   if [[ -n "${SYNC_PID}" ]] && kill -0 "${SYNC_PID}" 2>/dev/null; then
     kill -TERM "${SYNC_PID}" 2>/dev/null || true
     wait "${SYNC_PID}" 2>/dev/null || true
