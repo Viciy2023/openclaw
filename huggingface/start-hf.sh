@@ -66,17 +66,21 @@ start_syncd() {
 
 run_gateway() {
   local gateway_port gateway_bind
+  local gateway_extra_args
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
   gateway_bind="${OPENCLAW_HF_GATEWAY_BIND:-lan}"
+  gateway_extra_args="${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}"
+
+  if [[ -z "${gateway_extra_args}" ]]; then
+    gateway_extra_args='--set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true'
+  else
+    gateway_extra_args="${gateway_extra_args} --set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true"
+  fi
 
   startup_log INFO "starting OpenClaw gateway as root-global install"
 
-  if [[ -n "${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}" ]]; then
-    # shellcheck disable=SC2086
-    exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${OPENCLAW_HF_GATEWAY_EXTRA_ARGS}
-  fi
-
-  exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured
+  # shellcheck disable=SC2086
+  exec openclaw gateway run --bind "${gateway_bind}" --port "${gateway_port}" --allow-unconfigured ${gateway_extra_args}
 }
 
 shutdown() {
