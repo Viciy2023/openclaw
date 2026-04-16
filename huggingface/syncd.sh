@@ -30,9 +30,12 @@ sync_tier1() {
 sync_tier2() {
   hf_acquire_lock sync
   hf_sync_local_sync_dir cron
-  hf_write_manifest tier2 ok "synced cron and medium-priority runtime state" \
+  hf_sync_local_sync_dir extensions
+  hf_write_manifest tier2 ok "synced cron, extensions, and medium-priority runtime state" \
     "$(hf_runtime_path cron)" \
-    "$(hf_live_path cron)"
+    "$(hf_live_path cron)" \
+    "$(hf_runtime_path extensions)" \
+    "$(hf_live_path extensions)"
   hf_release_lock sync
 }
 
