@@ -239,6 +239,12 @@ hf_rsync_dir_no_delete() {
 hf_sync_file_if_newer() {
   local preferred="$1"
   local fallback="$2"
+  local preferred_real fallback_real
+  preferred_real="$(realpath -m "${preferred}")"
+  fallback_real="$(realpath -m "${fallback}")"
+  if [[ "${preferred_real}" == "${fallback_real}" ]]; then
+    return 0
+  fi
   if [[ -f "${preferred}" && -f "${fallback}" ]]; then
     if [[ "${preferred}" -nt "${fallback}" ]]; then
       cp -f "${preferred}" "${fallback}"
@@ -386,6 +392,9 @@ hf_materialize_live_file() {
   local runtime_file="$1"
   local live_file="$2"
   mkdir -p "$(dirname "${runtime_file}")" "$(dirname "${live_file}")"
+  if [[ "$(realpath -m "${runtime_file}")" == "$(realpath -m "${live_file}")" ]]; then
+    return 0
+  fi
   if [[ -f "${runtime_file}" && ! -e "${live_file}" ]]; then
     cp -f "${runtime_file}" "${live_file}"
   elif [[ -f "${runtime_file}" && -f "${live_file}" ]]; then

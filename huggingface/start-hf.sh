@@ -198,6 +198,7 @@ if (imageToVideoModel) {
 
 parsed.env = ensureObject(parsed.env);
 parsed.env.vars = ensureObject(parsed.env.vars);
+parsed.env.vars.OPENCLAW_PRIMARY_MODEL_SET = selectedSlot;
 
 if (textToImageUrl) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_URL = textToImageUrl;
 if (textToImageKey) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_KEY = textToImageKey;
@@ -212,7 +213,9 @@ if (imageToVideoKey) parsed.env.vars.OPENCLAW_IMAGE_TO_VIDEO_KEY = imageToVideoK
 if (imageToVideoModel) parsed.env.vars.OPENCLAW_IMAGE_TO_VIDEO_MODEL = imageToVideoModel;
 
 parsed.meta = ensureObject(parsed.meta);
-parsed.meta.hfPrimaryModelSet = selectedSlot;
+if (Object.prototype.hasOwnProperty.call(parsed.meta, "hfPrimaryModelSet")) {
+  delete parsed.meta.hfPrimaryModelSet;
+}
 
 fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
