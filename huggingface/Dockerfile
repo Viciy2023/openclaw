@@ -20,7 +20,6 @@ RUN apt-get update && \
       rsync \
       util-linux && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install -g openclaw@latest --no-fund --no-audit --loglevel=error && \
     mkdir -p /root/.openclaw /data /opt/openclaw-hf
 
 COPY lib/common.sh /opt/openclaw-hf/lib/common.sh
