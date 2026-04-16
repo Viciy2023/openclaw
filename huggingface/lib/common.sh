@@ -161,21 +161,46 @@ hf_acquire_lock() {
   local lock_dir="${OPENCLAW_HF_SYNC_ROOT}/locks/${name}.lock"
   local waited=0
   while ! mkdir "${lock_dir}" 2>/dev/null; do
-    local pid_file held_pid
+    local pid_file start_file command_file held_pid held_start held_command current_start current_command
     pid_file="${lock_dir}/pid"
+    start_file="${lock_dir}/starttime"
+    command_file="${lock_dir}/command"
     held_pid=""
+    held_start=""
+    held_command=""
     if [[ -f "${pid_file}" ]]; then
       held_pid="$(tr -d '[:space:]' < "${pid_file}" 2>/dev/null || true)"
     fi
+    if [[ -f "${start_file}" ]]; then
+      held_start="$(tr -d '[:space:]' < "${start_file}" 2>/dev/null || true)"
+    fi
+    if [[ -f "${command_file}" ]]; then
+      held_command="$(cat "${command_file}" 2>/dev/null || true)"
+    fi
 
-    if [[ -z "${held_pid}" ]]; then
-      hf_log WARN "reaping stale lock ${name} with missing pid metadata"
+    if [[ -z "${held_pid}" || -z "${held_start}" || -z "${held_command}" ]]; then
+      hf_log WARN "reaping stale lock ${name} with incomplete metadata"
       rm -rf "${lock_dir}"
       continue
     fi
 
     if ! kill -0 "${held_pid}" 2>/dev/null; then
       hf_log WARN "reaping stale lock ${name} held by dead pid ${held_pid}"
+      rm -rf "${lock_dir}"
+      continue
+    fi
+
+    current_start="$(awk '{print $22}' "/proc/${held_pid}/stat" 2>/dev/null || true)"
+    current_command="$(tr '\0' ' ' < "/proc/${held_pid}/cmdline" 2>/dev/null || true)"
+
+    if [[ -z "${current_start}" || "${current_start}" != "${held_start}" ]]; then
+      hf_log WARN "reaping stale lock ${name} held by recycled pid ${held_pid}"
+      rm -rf "${lock_dir}"
+      continue
+    fi
+
+    if [[ "${current_command}" != *"openclaw-hf"* && "${current_command}" != *"start-hf.sh"* && "${current_command}" != *"syncd.sh"* && "${current_command}" != *"hf-sync.sh"* ]]; then
+      hf_log WARN "reaping stale lock ${name} held by unrelated pid ${held_pid}"
       rm -rf "${lock_dir}"
       continue
     fi
@@ -188,6 +213,8 @@ hf_acquire_lock() {
     sleep 1
   done
   printf '%s\n' "$$" > "${lock_dir}/pid"
+  awk '{print $22}' "/proc/$$/stat" > "${lock_dir}/starttime"
+  tr '\0' ' ' < "/proc/$$/cmdline" > "${lock_dir}/command"
 }
 
 hf_release_lock() {
