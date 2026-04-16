@@ -1,0 +1,57 @@
+{
+  "gateway": {
+    "auth": {
+      "mode": "token"
+    },
+    "mode": "local",
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "hf-openai": {
+        "api": "openai-completions",
+        "auth": "api-key",
+        "baseUrl": "https://example.invalid/v1",
+        "apiKey": "replace-me",
+        "models": [
+          {
+            "id": "placeholder-primary",
+            "name": "HF Primary Placeholder"
+          },
+          {
+            "id": "placeholder-text-to-image",
+            "name": "HF Text To Image Placeholder"
+          },
+          {
+            "id": "placeholder-image-to-image",
+            "name": "HF Image To Image Placeholder"
+          },
+          {
+            "id": "placeholder-image-to-video",
+            "name": "HF Image To Video Placeholder"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "hf-openai/placeholder-primary"
+      },
+      "imageGenerationModel": {
+        "primary": "hf-openai/placeholder-text-to-image"
+      },
+      "videoGenerationModel": {
+        "primary": "hf-openai/placeholder-image-to-video"
+      }
+    }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.4.14",
+    "lastTouchedAt": "2026-04-16T08:42:44.901Z"
+  }
+}
