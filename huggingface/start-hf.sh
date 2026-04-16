@@ -450,8 +450,8 @@ startup_log INFO "live root: ${OPENCLAW_HF_LIVE_ROOT}"
 startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
-"${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 restore_runtime_state
+"${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 seed_hf_gateway_config
 seed_hf_model_config
 seed_hf_china_channels_config
