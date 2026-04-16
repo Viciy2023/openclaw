@@ -18,8 +18,8 @@ OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY="${OPENCLAW_HF_STRONG_DIR_RESTORE_POLICY:-
 OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY="${OPENCLAW_HF_LOCAL_SYNC_RESTORE_POLICY:-newer_wins}"
 
 OPENCLAW_HF_LINKED_FILES=("openclaw.json" "auth-profiles.json")
-OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "skills" "extensions" "wecomConfig" "qqbot" "canvas")
-OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media")
+OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "skills" "wecomConfig" "qqbot" "canvas")
+OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media" "extensions")
 OPENCLAW_HF_EXTERNAL_LINKED_DIRS=(".agent-browser")
 
 hf_log() {

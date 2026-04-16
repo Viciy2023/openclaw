@@ -262,7 +262,7 @@ const ensureObject = (value) =>
   fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
-  startup_log INFO "seeded OpenClaw China channel config from HF environment"
+  startup_log INFO "cleaned stale China channel config before plugin load"
 }
 
 seed_hf_search_provider_config() {
@@ -451,10 +451,10 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
 restore_runtime_state
+seed_hf_china_channels_config
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 seed_hf_gateway_config
 seed_hf_model_config
-seed_hf_china_channels_config
 seed_hf_search_provider_config
 seed_hf_skill_runtime_config
 start_syncd
