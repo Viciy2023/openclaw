@@ -236,6 +236,107 @@ EOF
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
 }
 
+seed_hf_china_channels_config() {
+  local config_path
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+
+  node - <<'EOF' "${config_path}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+const ensureObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+
+const env = process.env;
+
+parsed.channels = ensureObject(parsed.channels);
+
+if (env.WECOM_WS_BOT_ID && env.WECOM_WS_SECRET) {
+  parsed.channels.wecom = {
+    enabled: true,
+    mode: "ws",
+    botId: env.WECOM_WS_BOT_ID,
+    secret: env.WECOM_WS_SECRET,
+  };
+}
+
+if (
+  env.WECOM_APP_TOKEN &&
+  env.WECOM_APP_AES_KEY &&
+  env.WECOM_APP_SECRET &&
+  env.WECOM_APP_AGENTID &&
+  env.WECOM_CORP_ID
+) {
+  parsed.channels["wecom-app"] = {
+    enabled: true,
+    webhookPath: "/wecom-app",
+    token: env.WECOM_APP_TOKEN,
+    encodingAESKey: env.WECOM_APP_AES_KEY,
+    corpId: env.WECOM_CORP_ID,
+    corpSecret: env.WECOM_APP_SECRET,
+    agentId: Number(env.WECOM_APP_AGENTID),
+    dmPolicy: "open",
+    inboundMedia: {
+      enabled: true,
+      maxBytes: 10485760,
+      keepDays: 7,
+    },
+    asr: {
+      enabled: Boolean(env.WECOM_APP_ASR_APP_ID && env.WECOM_APP_ASR_SECRET_ID && env.WECOM_APP_ASR_SECRET_KEY),
+      appId: env.WECOM_APP_ASR_APP_ID,
+      secretId: env.WECOM_APP_ASR_SECRET_ID,
+      secretKey: env.WECOM_APP_ASR_SECRET_KEY,
+    },
+  };
+}
+
+if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
+  parsed.channels.qqbot = {
+    enabled: true,
+    appId: env.QQBOT_APP_ID,
+    clientSecret: env.QQBOT_CLIENT_SECRET,
+    markdownSupport: true,
+    dmPolicy: "open",
+    groupPolicy: "open",
+    requireMention: true,
+    replyFinalOnly: false,
+    streaming: true,
+    c2cMarkdownDeliveryMode: "proactive-all",
+    c2cMarkdownChunkStrategy: "markdown-block",
+    typingHeartbeatMode: "idle",
+    typingHeartbeatIntervalMs: 5000,
+    typingInputSeconds: 60,
+    autoSendLocalPathMedia: true,
+    longTaskNoticeDelayMs: 5000,
+    asr: {
+      enabled: Boolean(env.QQBOT_ASR_APP_ID && env.QQBOT_ASR_SECRET_ID && env.QQBOT_ASR_SECRET_KEY),
+      appId: env.QQBOT_ASR_APP_ID,
+      secretId: env.QQBOT_ASR_SECRET_ID,
+      secretKey: env.QQBOT_ASR_SECRET_KEY,
+    },
+  };
+}
+
+if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
+  parsed.channels["feishu-china"] = {
+    enabled: true,
+    appId: env.FEISHU_APP_ID,
+    appSecret: env.FEISHU_APP_SECRET,
+    verificationToken: env.FEISHU_VERIFICATION_TOKEN,
+    encryptKey: env.FEISHU_ENCRYPT_KEY,
+    sendMarkdownAsCard: true,
+  };
+}
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "seeded OpenClaw China channel config from HF environment"
+}
+
 restore_runtime_state() {
   startup_log INFO "restoring runtime state"
   hf_acquire_lock startup
@@ -313,5 +414,6 @@ print_outbound_ip
 restore_runtime_state
 seed_hf_gateway_config
 seed_hf_model_config
+seed_hf_china_channels_config
 start_syncd
 run_gateway

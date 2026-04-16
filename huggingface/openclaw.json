@@ -50,6 +50,67 @@
       }
     }
   },
+  "channels": {
+    "wecom": {
+      "enabled": false,
+      "mode": "ws",
+      "botId": "replace-with-wecom-ws-bot-id",
+      "secret": "replace-with-wecom-ws-secret"
+    },
+    "wecom-app": {
+      "enabled": false,
+      "webhookPath": "/wecom-app",
+      "token": "replace-with-wecom-app-token",
+      "encodingAESKey": "replace-with-wecom-app-aes-key",
+      "corpId": "replace-with-wecom-corp-id",
+      "corpSecret": "replace-with-wecom-app-secret",
+      "agentId": 1000000,
+      "dmPolicy": "open",
+      "inboundMedia": {
+        "enabled": true,
+        "maxBytes": 10485760,
+        "keepDays": 7
+      },
+      "asr": {
+        "enabled": true,
+        "appId": "replace-with-wecom-app-asr-app-id",
+        "secretId": "replace-with-wecom-app-asr-secret-id",
+        "secretKey": "replace-with-wecom-app-asr-secret-key"
+      }
+    },
+    "qqbot": {
+      "enabled": false,
+      "appId": "replace-with-qqbot-app-id",
+      "clientSecret": "replace-with-qqbot-client-secret",
+      "markdownSupport": true,
+      "dmPolicy": "open",
+      "groupPolicy": "open",
+      "requireMention": true,
+      "replyFinalOnly": false,
+      "streaming": true,
+      "c2cMarkdownDeliveryMode": "proactive-all",
+      "c2cMarkdownChunkStrategy": "markdown-block",
+      "typingHeartbeatMode": "idle",
+      "typingHeartbeatIntervalMs": 5000,
+      "typingInputSeconds": 60,
+      "autoSendLocalPathMedia": true,
+      "longTaskNoticeDelayMs": 5000,
+      "asr": {
+        "enabled": true,
+        "appId": "replace-with-qqbot-asr-app-id",
+        "secretId": "replace-with-qqbot-asr-secret-id",
+        "secretKey": "replace-with-qqbot-asr-secret-key"
+      }
+    },
+    "feishu-china": {
+      "enabled": false,
+      "appId": "replace-with-feishu-app-id",
+      "appSecret": "replace-with-feishu-app-secret",
+      "verificationToken": "replace-with-feishu-verification-token",
+      "encryptKey": "replace-with-feishu-encrypt-key",
+      "sendMarkdownAsCard": true
+    }
+  },
   "meta": {
     "lastTouchedVersion": "2026.4.14",
     "lastTouchedAt": "2026-04-16T08:42:44.901Z"
