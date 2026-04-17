@@ -768,12 +768,44 @@ start_syncd() {
   SYNC_PID="$!"
 }
 
+start_gateway_probe_logger() {
+  local gateway_port
+  gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
+
+  (
+    local attempt health_status ready_status health_body ready_body body_file
+    for attempt in $(seq 1 24); do
+      sleep 5
+
+      body_file="$(mktemp)"
+      health_status="$(curl -sS -o "${body_file}" -w "%{http_code}" --max-time 3 "http://127.0.0.1:${gateway_port}/healthz" 2>/dev/null || printf 'curl-error')"
+      health_body="$(tr -d '\r\n' < "${body_file}" | cut -c1-200)"
+      rm -f "${body_file}"
+
+      body_file="$(mktemp)"
+      ready_status="$(curl -sS -o "${body_file}" -w "%{http_code}" --max-time 3 "http://127.0.0.1:${gateway_port}/readyz" 2>/dev/null || printf 'curl-error')"
+      ready_body="$(tr -d '\r\n' < "${body_file}" | cut -c1-200)"
+      rm -f "${body_file}"
+
+      startup_log INFO "gateway probe [attempt=${attempt}] healthz=${health_status} readyz=${ready_status} healthz_body=${health_body:-<empty>} readyz_body=${ready_body:-<empty>}"
+
+      if [[ "${health_status}" == "200" && "${ready_status}" == "200" ]]; then
+        startup_log INFO "gateway probes reached healthy ready state"
+        exit 0
+      fi
+    done
+
+    startup_log WARN "gateway probes never reached fully ready state within 120s"
+  ) &
+}
+
 run_gateway() {
   local gateway_port gateway_bind
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
   gateway_bind="${OPENCLAW_HF_GATEWAY_BIND:-lan}"
 
   startup_log INFO "starting OpenClaw gateway as root-global install"
+  start_gateway_probe_logger
 
   if [[ -n "${OPENCLAW_HF_GATEWAY_EXTRA_ARGS:-}" ]]; then
     # shellcheck disable=SC2086
