@@ -432,6 +432,13 @@ clean_stale_china_channels_config() {
   local config_path
   config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
 
+  # 首次启动或桶已清空时，openclaw.json 可能还不存在。
+  # 这种情况下不需要清理旧渠道配置，直接等后续 seed_* 阶段创建配置即可。
+  if [[ ! -f "${config_path}" ]]; then
+    startup_log INFO "openclaw.json not found during channel cleanup; skipping stale channel cleanup"
+    return 0
+  fi
+
   node - <<'EOF' "${config_path}"
 const fs = require("node:fs");
 
