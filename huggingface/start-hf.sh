@@ -350,33 +350,57 @@ const parsed = JSON.parse(raw);
 const ensureObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 
+const makeProvider = (baseUrl, apiKey, models) => ({
+  api: "openai-completions",
+  auth: "api-key",
+  baseUrl,
+  apiKey,
+  models,
+});
+
 parsed.models = ensureObject(parsed.models);
 parsed.models.mode = parsed.models.mode ?? "merge";
 parsed.models.providers = ensureObject(parsed.models.providers);
 
-parsed.models.providers["hf-openai"] = {
-  api: "openai-completions",
-  auth: "api-key",
-  baseUrl: primaryUrl,
-  apiKey: primaryKey,
-  models: [
-    { id: primaryModel, name: `HF Primary ${selectedSlot}` },
-    ...(textToImageModel ? [{ id: textToImageModel, name: "HF Text To Image" }] : []),
-    ...(imageToImageModel ? [{ id: imageToImageModel, name: "HF Image To Image" }] : []),
-    ...(imageToVideoModel ? [{ id: imageToVideoModel, name: "HF Image To Video" }] : []),
-  ],
-};
+delete parsed.models.providers["hf-openai"];
 
-parsed.agents = ensureObject(parsed.agents);
-parsed.agents.defaults = ensureObject(parsed.agents.defaults);
-parsed.agents.defaults.model = { primary: `hf-openai/${primaryModel}` };
+parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey, [
+  { id: primaryModel, name: `HF Primary ${selectedSlot}` },
+]);
 
-if (textToImageModel) {
-  parsed.agents.defaults.imageGenerationModel = { primary: `hf-openai/${textToImageModel}` };
+if (textToImageModel || imageToImageModel) {
+  parsed.models.providers["hf-openai-image"] = makeProvider(
+    textToImageUrl || imageToImageUrl || primaryUrl,
+    textToImageKey || imageToImageKey || primaryKey,
+    [
+      ...(textToImageModel ? [{ id: textToImageModel, name: "HF Text To Image" }] : []),
+      ...(imageToImageModel ? [{ id: imageToImageModel, name: "HF Image To Image" }] : []),
+    ],
+  );
+} else {
+  delete parsed.models.providers["hf-openai-image"];
 }
 
 if (imageToVideoModel) {
-  parsed.agents.defaults.videoGenerationModel = { primary: `hf-openai/${imageToVideoModel}` };
+  parsed.models.providers["hf-openai-video"] = makeProvider(
+    imageToVideoUrl || primaryUrl,
+    imageToVideoKey || primaryKey,
+    [{ id: imageToVideoModel, name: "HF Image To Video" }],
+  );
+} else {
+  delete parsed.models.providers["hf-openai-video"];
+}
+
+parsed.agents = ensureObject(parsed.agents);
+parsed.agents.defaults = ensureObject(parsed.agents.defaults);
+parsed.agents.defaults.model = { primary: `hf-openai-chat/${primaryModel}` };
+
+if (textToImageModel) {
+  parsed.agents.defaults.imageGenerationModel = { primary: `hf-openai-image/${textToImageModel}` };
+}
+
+if (imageToVideoModel) {
+  parsed.agents.defaults.videoGenerationModel = { primary: `hf-openai-video/${imageToVideoModel}` };
 }
 
 parsed.env = ensureObject(parsed.env);
@@ -404,6 +428,7 @@ fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
+  startup_log INFO "HF default models: chat=hf-openai-chat/${primary_model} image=${text_to_image_model:-<unset>} video=${image_to_video_model:-<unset>}"
 }
 
 seed_hf_china_channels_config() {
