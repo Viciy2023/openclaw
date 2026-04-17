@@ -19,10 +19,11 @@ hf_ensure_tree
 run_plugin_install_isolated() {
   local package_spec="$1"
   local temp_state_dir
+  local temp_config_path
   temp_state_dir="$(mktemp -d)"
-  trap 'rm -rf "${temp_state_dir}"' RETURN
+  temp_config_path="${temp_state_dir}/openclaw.json"
 
-  cat > "${temp_state_dir}/openclaw.json" <<'EOF'
+  cat > "${temp_config_path}" <<'EOF'
 {
   "gateway": {
     "mode": "local"
@@ -30,7 +31,11 @@ run_plugin_install_isolated() {
 }
 EOF
 
-  OPENCLAW_STATE_DIR="${temp_state_dir}" OPENCLAW_CONFIG="${temp_state_dir}/openclaw.json" openclaw plugins install "${package_spec}"
+  # 关键点：只替换本次安装命令读取的配置文件，不替换 OPENCLAW_STATE_DIR。
+  # 这样 schema 校验用最小配置，但插件实际仍然安装到真实 ~/.openclaw/extensions。
+  OPENCLAW_CONFIG="${temp_config_path}" openclaw plugins install "${package_spec}"
+
+  rm -rf "${temp_state_dir}"
 }
 
 # 统一的重试执行器。
