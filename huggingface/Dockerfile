@@ -59,6 +59,7 @@ RUN apt-get update && \
     mkdir -p /root/.openclaw /data /opt/openclaw-hf
 
 COPY lib/common.sh /opt/openclaw-hf/lib/common.sh
+COPY cron/jobs.json /opt/openclaw-hf/cron/jobs.json
 COPY install-extra.sh /opt/openclaw-hf/install-extra.sh
 COPY syncd.sh /opt/openclaw-hf/syncd.sh
 COPY hf-sync.sh /opt/openclaw-hf/hf-sync.sh
