@@ -14,6 +14,25 @@ OPENCLAW_TAVILY_PACKAGE="${OPENCLAW_TAVILY_PACKAGE:-tavily-python}"
 
 hf_ensure_tree
 
+# 在最小隔离状态目录中执行插件安装，避免真实 openclaw.json 里的第三方渠道配置
+# 在安装前被主 schema 校验拦截。安装完成后，插件文件会写入真实 ~/.openclaw/extensions。
+run_plugin_install_isolated() {
+  local package_spec="$1"
+  local temp_state_dir
+  temp_state_dir="$(mktemp -d)"
+  trap 'rm -rf "${temp_state_dir}"' RETURN
+
+  cat > "${temp_state_dir}/openclaw.json" <<'EOF'
+{
+  "gateway": {
+    "mode": "local"
+  }
+}
+EOF
+
+  OPENCLAW_STATE_DIR="${temp_state_dir}" OPENCLAW_CONFIG="${temp_state_dir}/openclaw.json" openclaw plugins install "${package_spec}"
+}
+
 # 统一的重试执行器。
 # 对需要联网安装的操作统一做 3 次重试，减少 HF 启动时的瞬时网络波动影响。
 run_with_retry() {
@@ -66,7 +85,7 @@ sync_openclaw_china_channels() {
   fi
 
   hf_log INFO "installing OpenClaw China channels plugin: ${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
-  openclaw plugins install "${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
+  run_with_retry "openclaw-china plugin install" run_plugin_install_isolated "${OPENCLAW_CHINA_PLUGIN_PACKAGE}"
 }
 
 # 安装腾讯微信插件。
@@ -80,7 +99,7 @@ sync_openclaw_weixin() {
   fi
 
   hf_log INFO "installing OpenClaw Weixin plugin: ${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}"
-  run_with_retry "openclaw-weixin plugin install" openclaw plugins install "${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}"
+  run_with_retry "openclaw-weixin plugin install" run_plugin_install_isolated "${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}"
 }
 
 # 检查 agent-browser CLI 是否已可用。

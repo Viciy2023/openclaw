@@ -655,7 +655,6 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
 restore_runtime_state
-clean_stale_china_channels_config
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 run_weixin_login_if_requested
 seed_hf_gateway_config
