@@ -471,6 +471,27 @@ EOF
   startup_log INFO "cleaned stale China channel config before plugin install"
 }
 
+# 只有在第三方渠道插件目录缺失时，才清理历史配置。
+# 这样可以避免系统已经稳定运行后，每次重启都把 channels.* 先删掉再写回，造成启动慢和配置抖动。
+clean_stale_channel_config_if_needed() {
+  local needs_cleanup=0
+
+  if [[ ! -d "/root/.openclaw/extensions/channels" ]]; then
+    needs_cleanup=1
+  fi
+
+  if [[ ! -d "/root/.openclaw/extensions/openclaw-weixin" ]]; then
+    needs_cleanup=1
+  fi
+
+  if [[ "${needs_cleanup}" == "1" ]]; then
+    clean_stale_china_channels_config
+    return 0
+  fi
+
+  startup_log INFO "third-party channel plugins already present; keeping existing channel config"
+}
+
 seed_hf_search_provider_config() {
   local config_path
   config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
@@ -655,6 +676,7 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
 restore_runtime_state
+clean_stale_channel_config_if_needed
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 run_weixin_login_if_requested
 seed_hf_gateway_config
