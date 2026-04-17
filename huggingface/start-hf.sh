@@ -122,6 +122,39 @@ write_runtime_manifests() {
     "${OPENCLAW_HF_INSTALL_ROOT}"
 }
 
+log_cron_jobs_status() {
+  local runtime_jobs_path live_jobs_path
+  runtime_jobs_path="$(hf_runtime_path "cron")/jobs.json"
+  live_jobs_path="$(hf_live_path "cron")/jobs.json"
+
+  node - <<'EOF' "${runtime_jobs_path}" "${live_jobs_path}"
+const fs = require("node:fs");
+
+const [runtimePath, livePath] = process.argv.slice(2);
+
+function summarize(label, filePath) {
+  if (!fs.existsSync(filePath)) {
+    return `${label}: missing (${filePath})`;
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const jobs = Array.isArray(parsed?.jobs) ? parsed.jobs : [];
+    const ids = jobs
+      .map((job) => (job && typeof job.id === "string" && job.id.trim() ? job.id.trim() : null))
+      .filter(Boolean);
+    return `${label}: present (${filePath}) jobs=${ids.length > 0 ? ids.join(",") : "<none>"}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `${label}: invalid-json (${filePath}) error=${message}`;
+  }
+}
+
+console.log(summarize("runtime cron jobs", runtimePath));
+console.log(summarize("live cron jobs", livePath));
+EOF
+}
+
 seed_hf_cron_jobs() {
   local runtime_cron_dir runtime_jobs_path live_jobs_path seed_jobs_path weixin_to
   runtime_cron_dir="${OPENCLAW_HF_RUNTIME_ROOT}/cron"
@@ -838,6 +871,7 @@ startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
 print_outbound_ip
 
 restore_runtime_state
+while IFS= read -r line; do startup_log INFO "${line}"; done < <(log_cron_jobs_status)
 clean_stale_channel_config_if_needed
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 run_weixin_login_if_requested
@@ -847,5 +881,6 @@ seed_hf_china_channels_config
 seed_hf_search_provider_config
 seed_hf_skill_runtime_config
 seed_hf_cron_jobs
+while IFS= read -r line; do startup_log INFO "${line}"; done < <(log_cron_jobs_status)
 start_syncd
 run_gateway
