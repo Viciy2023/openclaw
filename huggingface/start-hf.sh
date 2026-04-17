@@ -457,6 +457,14 @@ if (env.WEIXIN_ACCOUNT_ID && env.WEIXIN_BASE_URL && env.WEIXIN_CDN_BASE_URL) {
   if (env.WEIXIN_TOKEN) {
     parsed.env.vars.WEIXIN_TOKEN = env.WEIXIN_TOKEN;
   }
+} else {
+  const missing = [];
+  if (!env.WEIXIN_ACCOUNT_ID) missing.push("WEIXIN_ACCOUNT_ID");
+  if (!env.WEIXIN_BASE_URL) missing.push("WEIXIN_BASE_URL");
+  if (!env.WEIXIN_CDN_BASE_URL) missing.push("WEIXIN_CDN_BASE_URL");
+  parsed.env = ensureObject(parsed.env);
+  parsed.env.vars = ensureObject(parsed.env.vars);
+  parsed.env.vars.WEIXIN_CONFIG_MISSING = missing.join(",");
 }
 
 if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
@@ -474,6 +482,12 @@ if (Array.isArray(parsed.plugins.allow)) {
 
 fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
+
+  if [[ -n "${WEIXIN_ACCOUNT_ID:-}" && -n "${WEIXIN_BASE_URL:-}" && -n "${WEIXIN_CDN_BASE_URL:-}" ]]; then
+    startup_log INFO "seeded openclaw-weixin channel config from HF environment"
+  else
+    startup_log WARN "skipped openclaw-weixin channel config; missing one or more required env vars: WEIXIN_ACCOUNT_ID, WEIXIN_BASE_URL, WEIXIN_CDN_BASE_URL"
+  fi
 
   startup_log INFO "seeded OpenClaw China channel config from HF environment"
 }
