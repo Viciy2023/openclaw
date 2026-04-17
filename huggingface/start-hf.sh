@@ -437,9 +437,34 @@ if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN 
   parsed.env.vars.FEISHU_ENCRYPT_KEY = env.FEISHU_ENCRYPT_KEY;
 }
 
+if (env.WEIXIN_ACCOUNT_ID && env.WEIXIN_BASE_URL && env.WEIXIN_CDN_BASE_URL) {
+  parsed.channels["openclaw-weixin"] = {
+    enabled: true,
+    baseUrl: env.WEIXIN_BASE_URL,
+    cdnBaseUrl: env.WEIXIN_CDN_BASE_URL,
+    accounts: {
+      default: {
+        enabled: true,
+        name: env.WEIXIN_ACCOUNT_ID,
+        baseUrl: env.WEIXIN_BASE_URL,
+        cdnBaseUrl: env.WEIXIN_CDN_BASE_URL,
+      },
+    },
+  };
+  parsed.env.vars.WEIXIN_ACCOUNT_ID = env.WEIXIN_ACCOUNT_ID;
+  parsed.env.vars.WEIXIN_BASE_URL = env.WEIXIN_BASE_URL;
+  parsed.env.vars.WEIXIN_CDN_BASE_URL = env.WEIXIN_CDN_BASE_URL;
+  if (env.WEIXIN_TOKEN) {
+    parsed.env.vars.WEIXIN_TOKEN = env.WEIXIN_TOKEN;
+  }
+}
+
 if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
   delete parsed.plugins.entries.channels;
 }
+parsed.plugins.entries["openclaw-weixin"] = {
+  enabled: true,
+};
 if (Array.isArray(parsed.plugins.allow)) {
   parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels");
   if (parsed.plugins.allow.length === 0) {
