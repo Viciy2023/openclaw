@@ -122,6 +122,61 @@ write_runtime_manifests() {
     "${OPENCLAW_HF_INSTALL_ROOT}"
 }
 
+seed_hf_cron_jobs() {
+  local runtime_cron_dir runtime_jobs_path live_jobs_path seed_jobs_path weixin_to
+  runtime_cron_dir="${OPENCLAW_HF_RUNTIME_ROOT}/cron"
+  runtime_jobs_path="${runtime_cron_dir}/jobs.json"
+  live_jobs_path="$(hf_live_path "cron")/jobs.json"
+  seed_jobs_path="${OPENCLAW_HF_APP_DIR}/cron/jobs.json"
+  weixin_to="${WEIXIN_TO:-}"
+
+  if [[ ! -f "${seed_jobs_path}" ]]; then
+    startup_log INFO "HF cron seed file not found; skipping cron seed"
+    return 0
+  fi
+
+  if [[ -z "${weixin_to}" ]]; then
+    startup_log WARN "WEIXIN_TO is unset; skipping HF weather cron seed"
+    return 0
+  fi
+
+  mkdir -p "${runtime_cron_dir}"
+
+  if [[ -s "${live_jobs_path}" ]] || [[ -s "${runtime_jobs_path}" ]]; then
+    startup_log INFO "cron jobs already exist in live/runtime state; skipping HF cron seed"
+    return 0
+  fi
+
+  node - <<'EOF' "${seed_jobs_path}" "${runtime_jobs_path}" "${weixin_to}"
+const fs = require("node:fs");
+
+const seedPath = process.argv[2];
+const outPath = process.argv[3];
+const weixinTo = process.argv[4];
+const placeholder = "__WEIXIN_TO__";
+
+const parsed = JSON.parse(fs.readFileSync(seedPath, "utf8"));
+if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.jobs)) {
+  throw new Error("HF cron seed file must contain a jobs array");
+}
+
+for (const job of parsed.jobs) {
+  if (
+    job &&
+    typeof job === "object" &&
+    job.delivery &&
+    typeof job.delivery === "object" &&
+    job.delivery.to === placeholder
+  ) {
+    job.delivery.to = weixinTo;
+  }
+}
+
+fs.writeFileSync(outPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+  startup_log INFO "seeded HF cron jobs from ${seed_jobs_path}"
+}
+
 seed_hf_gateway_config() {
   local config_path
   config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
@@ -759,5 +814,6 @@ seed_hf_model_config
 seed_hf_china_channels_config
 seed_hf_search_provider_config
 seed_hf_skill_runtime_config
+seed_hf_cron_jobs
 start_syncd
 run_gateway

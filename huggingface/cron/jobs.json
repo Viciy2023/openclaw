@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "hf-wuzhou-weather-morning",
+      "name": "wuzhou-weather-morning",
+      "description": "Send Wuzhou morning weather briefing to Weixin",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "45 7 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Query the weather for Wuzhou, Guangxi, China and send a concise Chinese morning briefing for Weixin. Cover today's weather overview, temperature range, rain risk, commute advice, clothing advice, and whether to bring rain gear. Avoid filler. End with one short sentence summarizing today's travel recommendation."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
+    },
+    {
+      "id": "hf-wuzhou-weather-evening",
+      "name": "wuzhou-weather-evening",
+      "description": "Send Wuzhou evening weather briefing to Weixin",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "45 20 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Query the weather for Wuzhou, Guangxi, China and send a concise Chinese evening briefing for Weixin. Focus on tonight through tomorrow morning and daytime, including rain risk, temperature changes, whether to prepare rain gear, commute advice for tomorrow, and practical preparation suggestions. Avoid filler. End with one short sentence summarizing tomorrow's travel recommendation."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
+    }
+  ]
+}
