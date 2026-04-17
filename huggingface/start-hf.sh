@@ -20,6 +20,31 @@ startup_log() {
   fi
 }
 
+# 打印微信插件持久化恢复状态，方便判断 bucket -> 运行目录 的恢复是否真正发生。
+log_weixin_restore_status() {
+  local phase="$1"
+  local live_dir runtime_dir
+  live_dir="$(hf_live_path "openclaw-weixin")"
+  runtime_dir="$(hf_runtime_path "openclaw-weixin")"
+
+  startup_log INFO "weixin restore [${phase}] source=${live_dir} exists=$([[ -d "${live_dir}" ]] && printf yes || printf no)"
+  startup_log INFO "weixin restore [${phase}] target=${runtime_dir} exists=$([[ -d "${runtime_dir}" ]] && printf yes || printf no)"
+
+  if [[ -d "${live_dir}" ]]; then
+    startup_log INFO "weixin restore [${phase}] source files:"
+    find "${live_dir}" -maxdepth 2 -type f | sort | while IFS= read -r file_path; do
+      startup_log INFO "weixin restore [${phase}] source file=${file_path}"
+    done
+  fi
+
+  if [[ -d "${runtime_dir}" ]]; then
+    startup_log INFO "weixin restore [${phase}] target files:"
+    find "${runtime_dir}" -maxdepth 2 -type f | sort | while IFS= read -r file_path; do
+      startup_log INFO "weixin restore [${phase}] target file=${file_path}"
+    done
+  fi
+}
+
 # 微信登录开关解析。
 # 兼容你要求的 OPEN / CLOLD 写法，同时也顺手兼容 CLOSED，避免手误导致行为不确定。
 resolve_weixin_login_mode() {
@@ -616,6 +641,8 @@ restore_runtime_state() {
   hf_acquire_lock startup
   trap 'hf_release_lock startup' RETURN
 
+  log_weixin_restore_status before
+
   hf_prepare_linked_state
 
   local dir_name
@@ -631,6 +658,8 @@ restore_runtime_state() {
 restoredAt=$(hf_now)
 $(hf_build_state_summary)
 EOF
+
+  log_weixin_restore_status after
 
   write_runtime_manifests
 }
