@@ -34,9 +34,41 @@ function shouldAllowPrivateImageEndpoint(req: {
 type OpenAIImageApiResponse = {
   data?: Array<{
     b64_json?: string;
+    url?: string;
     revised_prompt?: string;
   }>;
 };
+
+async function resolveGeneratedImageAsset(params: {
+  entry: NonNullable<OpenAIImageApiResponse["data"]>[number];
+  index: number;
+}) {
+  if (params.entry.b64_json) {
+    return {
+      buffer: Buffer.from(params.entry.b64_json, "base64"),
+      mimeType: DEFAULT_OUTPUT_MIME,
+      fileName: `image-${params.index + 1}.png`,
+      ...(params.entry.revised_prompt ? { revisedPrompt: params.entry.revised_prompt } : {}),
+    };
+  }
+
+  if (!params.entry.url) {
+    return null;
+  }
+
+  const response = await fetch(params.entry.url);
+  if (!response.ok) {
+    throw new Error(`OpenAI image URL download failed with status ${response.status}`);
+  }
+  const mimeType = response.headers.get("content-type")?.trim() || DEFAULT_OUTPUT_MIME;
+  const extension = mimeType.includes("jpeg") ? "jpg" : mimeType.includes("webp") ? "webp" : "png";
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    mimeType,
+    fileName: `image-${params.index + 1}.${extension}`,
+    ...(params.entry.revised_prompt ? { revisedPrompt: params.entry.revised_prompt } : {}),
+  };
+}
 
 export function buildOpenAIImageGenerationProvider(): ImageGenerationProvider {
   return {
@@ -147,19 +179,16 @@ export function buildOpenAIImageGenerationProvider(): ImageGenerationProvider {
         );
 
         const data = (await response.json()) as OpenAIImageApiResponse;
-        const images = (data.data ?? [])
-          .map((entry, index) => {
-            if (!entry.b64_json) {
-              return null;
-            }
-            return {
-              buffer: Buffer.from(entry.b64_json, "base64"),
-              mimeType: DEFAULT_OUTPUT_MIME,
-              fileName: `image-${index + 1}.png`,
-              ...(entry.revised_prompt ? { revisedPrompt: entry.revised_prompt } : {}),
-            };
-          })
-          .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+        const images = (
+          await Promise.all(
+            (data.data ?? []).map((entry, index) =>
+              resolveGeneratedImageAsset({
+                entry,
+                index,
+              }),
+            ),
+          )
+        ).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
         return {
           images,

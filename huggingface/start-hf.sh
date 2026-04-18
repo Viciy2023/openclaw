@@ -367,6 +367,8 @@ parsed.models.mode = parsed.models.mode ?? "merge";
 parsed.models.providers = ensureObject(parsed.models.providers);
 
 delete parsed.models.providers["hf-openai"];
+delete parsed.models.providers["hf-openai-image"];
+delete parsed.models.providers["hf-openai-video"];
 
 parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey, [
   { id: primaryModel, name: `HF Primary ${selectedSlot}` },
