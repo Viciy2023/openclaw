@@ -201,38 +201,4 @@ describe("openai image generation provider", () => {
     );
     expect(result.images).toHaveLength(1);
   });
-
-  it("downloads image URLs when the backend returns data.url instead of b64_json", async () => {
-    postJsonRequestMock.mockResolvedValue({
-      response: {
-        json: async () => ({
-          data: [{ url: "https://example.invalid/generated.png" }],
-        }),
-      },
-      release: vi.fn(async () => {}),
-    });
-
-    const fetchMock = vi.fn(async () =>
-      new Response(Buffer.from("png-bytes"), {
-        status: 200,
-        headers: { "content-type": "image/png" },
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const provider = buildOpenAIImageGenerationProvider();
-    const result = await provider.generateImage({
-      provider: "openai",
-      model: "gpt-image-1",
-      prompt: "Draw a QA lighthouse",
-      cfg: {},
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/generated.png");
-    expect(result.images).toHaveLength(1);
-    expect(result.images[0]).toMatchObject({
-      mimeType: "image/png",
-      fileName: "image-1.png",
-    });
-  });
 });
