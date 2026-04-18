@@ -123,6 +123,34 @@ write_runtime_manifests() {
     "${OPENCLAW_HF_INSTALL_ROOT}"
 }
 
+ensure_qqbot_tool_media_bridge() {
+  local media_root qqbot_media_root tool_dir qqbot_tool_dir
+  media_root="$(hf_runtime_path "media")"
+  qqbot_media_root="${media_root}/qqbot"
+  tool_dir="${media_root}/tool-image-generation"
+  qqbot_tool_dir="${qqbot_media_root}/tool-image-generation"
+
+  mkdir -p "${qqbot_tool_dir}"
+
+  if [[ -L "${tool_dir}" ]]; then
+    startup_log INFO "qqbot tool media bridge already linked: ${tool_dir} -> $(readlink "${tool_dir}")"
+    return 0
+  fi
+
+  if [[ -d "${tool_dir}" ]]; then
+    startup_log INFO "migrating existing tool-image-generation files into QQ Bot media storage"
+    if compgen -G "${tool_dir}/*" > /dev/null; then
+      cp -f -R "${tool_dir}"/* "${qqbot_tool_dir}/"
+    fi
+    rm -rf "${tool_dir}"
+  elif [[ -e "${tool_dir}" ]]; then
+    rm -f "${tool_dir}"
+  fi
+
+  ln -s "${qqbot_tool_dir}" "${tool_dir}"
+  startup_log INFO "linked tool-image-generation into QQ Bot media storage: ${tool_dir} -> ${qqbot_tool_dir}"
+}
+
 log_cron_jobs_status() {
   local runtime_jobs_path live_jobs_path
   runtime_jobs_path="$(hf_runtime_path "cron")/jobs.json"
@@ -932,6 +960,7 @@ startup_log INFO "local image provider allowlist: ${OPENCLAW_QA_ALLOW_LOCAL_IMAG
 print_outbound_ip
 
 restore_runtime_state
+ensure_qqbot_tool_media_bridge
 while IFS= read -r line; do startup_log INFO "${line}"; done < <(log_cron_jobs_status)
 clean_stale_channel_config_if_needed
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
