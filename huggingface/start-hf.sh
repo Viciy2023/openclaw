@@ -7,6 +7,7 @@ OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
 SYNC_PID=""
+IMAGE_BRIDGE_PID=""
 STARTUP_LOG_FILE=""
 
 startup_log() {
@@ -367,6 +368,8 @@ parsed.models.mode = parsed.models.mode ?? "merge";
 parsed.models.providers = ensureObject(parsed.models.providers);
 
 delete parsed.models.providers["hf-openai"];
+delete parsed.models.providers["hf-openai-image"];
+delete parsed.models.providers["hf-openai-video"];
 
 parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey, [
   { id: primaryModel, name: `HF Primary ${selectedSlot}` },
@@ -828,6 +831,29 @@ start_syncd() {
   SYNC_PID="$!"
 }
 
+start_qwen_image_bridge() {
+  local bridge_port bridge_host upstream key log_path
+  upstream="${OPENCLAW_TEXT_TO_IMAGE_URL:-}"
+  key="${OPENCLAW_TEXT_TO_IMAGE_KEY:-}"
+
+  if [[ -z "${upstream}" || -z "${key}" ]]; then
+    startup_log INFO "qwen image bridge skipped because OPENCLAW_TEXT_TO_IMAGE_URL/KEY is unset"
+    return 0
+  fi
+
+  bridge_host="${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_HOST:-127.0.0.1}"
+  bridge_port="${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT:-18891}"
+  log_path="${OPENCLAW_HF_LOG_ROOT}/startup/qwen-image-bridge.log"
+
+  startup_log INFO "starting qwen image bridge on http://${bridge_host}:${bridge_port} -> ${upstream}"
+  OPENCLAW_QWEN_IMAGE_BRIDGE_HOST="${bridge_host}" \
+  OPENCLAW_QWEN_IMAGE_BRIDGE_PORT="${bridge_port}" \
+  OPENCLAW_QWEN_IMAGE_BRIDGE_UPSTREAM="${upstream}" \
+  OPENCLAW_QWEN_IMAGE_BRIDGE_KEY="${key}" \
+    python3 "${OPENCLAW_HF_APP_DIR}/qwen-image-bridge.py" >> "${log_path}" 2>&1 &
+  IMAGE_BRIDGE_PID="$!"
+}
+
 start_gateway_probe_logger() {
   local gateway_port
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
@@ -878,6 +904,10 @@ run_gateway() {
 shutdown() {
   local exit_code=$?
   startup_log INFO "gateway wrapper shutting down"
+  if [[ -n "${IMAGE_BRIDGE_PID}" ]] && kill -0 "${IMAGE_BRIDGE_PID}" 2>/dev/null; then
+    kill -TERM "${IMAGE_BRIDGE_PID}" 2>/dev/null || true
+    wait "${IMAGE_BRIDGE_PID}" 2>/dev/null || true
+  fi
   if [[ -n "${SYNC_PID}" ]] && kill -0 "${SYNC_PID}" 2>/dev/null; then
     kill -TERM "${SYNC_PID}" 2>/dev/null || true
     wait "${SYNC_PID}" 2>/dev/null || true
@@ -903,6 +933,7 @@ clean_stale_channel_config_if_needed
 "${OPENCLAW_HF_APP_DIR}/install-extra.sh"
 run_weixin_login_if_requested
 seed_hf_gateway_config
+start_qwen_image_bridge
 seed_hf_model_config
 seed_hf_china_channels_config
 seed_hf_search_provider_config
