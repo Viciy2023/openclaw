@@ -928,6 +928,7 @@ startup_log INFO "wrapper initialized"
 startup_log INFO "runtime root: ${OPENCLAW_HF_RUNTIME_ROOT}"
 startup_log INFO "live root: ${OPENCLAW_HF_LIVE_ROOT}"
 startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
+startup_log INFO "local image provider allowlist: ${OPENCLAW_QA_ALLOW_LOCAL_IMAGE_PROVIDER:-<unset>}"
 print_outbound_ip
 
 restore_runtime_state
