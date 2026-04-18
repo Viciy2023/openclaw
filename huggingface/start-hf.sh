@@ -347,6 +347,8 @@ const [
 
 const raw = fs.readFileSync(configPath, "utf8");
 const parsed = JSON.parse(raw);
+const qwenImageBridgePort = process.env.OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT || "18891";
+const qwenImageBridgeBaseUrl = `http://127.0.0.1:${qwenImageBridgePort}/v1`;
 
 const ensureObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
@@ -377,7 +379,7 @@ parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey,
 
 if (textToImageModel || imageToImageModel) {
   parsed.models.providers.openai = makeProvider(
-    textToImageUrl || imageToImageUrl || primaryUrl,
+    qwenImageBridgeBaseUrl,
     textToImageKey || imageToImageKey || primaryKey,
     [
       ...(textToImageModel ? [{ id: textToImageModel, name: "HF Text To Image" }] : []),
@@ -426,6 +428,7 @@ fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
+  startup_log INFO "HF image provider baseUrl=${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_HOST:-127.0.0.1}:${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT:-18891} upstream=${text_to_image_url:-<unset>}"
   if [[ -n "${text_to_image_model}" && -n "${image_to_video_model}" ]] && ! node - <<'EOF' "${text_to_image_url:-${primary_url}}" "${text_to_image_key:-${primary_key}}" "${image_to_video_url:-${text_to_image_url:-${primary_url}}}" "${image_to_video_key:-${text_to_image_key:-${primary_key}}}"
 const [leftUrl, leftKey, rightUrl, rightKey] = process.argv.slice(2);
 process.exit(leftUrl === rightUrl && leftKey === rightKey ? 0 : 1);
