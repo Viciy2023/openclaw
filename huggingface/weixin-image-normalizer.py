@@ -12,9 +12,7 @@ from PIL import Image, ImageOps
 
 WATCH_DIR = Path(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_WATCH_DIR", "/root/.openclaw/media/tool-image-generation"))
 MAX_EDGE = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MAX_EDGE", "2048"))
-TARGET_MAX_BYTES = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_TARGET_MAX_BYTES", str(1572864)))
-MIN_SCALE_RATIO = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MIN_SCALE_RATIO", "0.7"))
-SCALE_STEP = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_SCALE_STEP", "0.92"))
+JPEG_QUALITY = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_QUALITY", "100"))
 POLL_INTERVAL = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_POLL_INTERVAL", "1.5"))
 MIN_AGE_SECONDS = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MIN_AGE", "2.0"))
 MARKER_SUFFIX = ".weixin-normalized"
@@ -41,34 +39,28 @@ def should_process(file_path: Path) -> bool:
 
 
 def normalize_image(file_path: Path) -> None:
-    output_format = "PNG"
-    tmp_suffix = ".weixin-tmp.png"
+    output_format = "JPEG"
+    tmp_suffix = ".weixin-tmp.jpg"
     tmp_path = file_path.with_suffix(tmp_suffix)
     with Image.open(file_path) as image:
         image = ImageOps.exif_transpose(image)
         original_size = image.size
         if max(image.size) > MAX_EDGE:
             image.thumbnail((MAX_EDGE, MAX_EDGE), Image.Resampling.LANCZOS)
-        png_image = image
-        if png_image.mode not in {"RGB", "RGBA"}:
-            png_image = png_image.convert("RGBA" if "A" in png_image.getbands() else "RGB")
 
-        current = png_image
-        current_ratio = 1.0
-        while True:
-            current.save(tmp_path, format="PNG", optimize=True, compress_level=9)
-            current_bytes = tmp_path.stat().st_size
-            if current_bytes <= TARGET_MAX_BYTES or current_ratio <= MIN_SCALE_RATIO:
-                break
-
-            next_width = max(1, int(current.width * SCALE_STEP))
-            next_height = max(1, int(current.height * SCALE_STEP))
-            current = current.resize((next_width, next_height), Image.Resampling.LANCZOS)
-            current_ratio *= SCALE_STEP
+        rgb = image.convert("RGB")
+        rgb.save(
+            tmp_path,
+            format="JPEG",
+            quality=JPEG_QUALITY,
+            optimize=False,
+            progressive=False,
+            subsampling=0,
+        )
 
     tmp_path.replace(file_path)
     marker_path(file_path).write_text(
-        f"normalized_at={int(time.time())}\nmax_edge={MAX_EDGE}\ntarget_max_bytes={TARGET_MAX_BYTES}\noriginal_size={original_size[0]}x{original_size[1]}\noutput_format={output_format}\n",
+        f"normalized_at={int(time.time())}\nquality={JPEG_QUALITY}\nmax_edge={MAX_EDGE}\noriginal_size={original_size[0]}x{original_size[1]}\noutput_format={output_format}\n",
         encoding="utf-8",
     )
     log(f"normalized image for weixin upload: {file_path}")
