@@ -11,8 +11,8 @@ from PIL import Image, ImageOps
 
 
 WATCH_DIR = Path(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_WATCH_DIR", "/root/.openclaw/media/tool-image-generation"))
-MAX_EDGE = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MAX_EDGE", "2048"))
-JPEG_QUALITY = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_QUALITY", "95"))
+MAX_EDGE = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MAX_EDGE", "1536"))
+JPEG_QUALITY = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_QUALITY", "97"))
 POLL_INTERVAL = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_POLL_INTERVAL", "1.5"))
 MIN_AGE_SECONDS = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MIN_AGE", "2.0"))
 MARKER_SUFFIX = ".weixin-normalized"
@@ -39,9 +39,8 @@ def should_process(file_path: Path) -> bool:
 
 
 def normalize_image(file_path: Path) -> None:
-    source_suffix = file_path.suffix.lower()
-    output_format = "PNG" if source_suffix == ".png" else "JPEG"
-    tmp_suffix = ".weixin-tmp.png" if output_format == "PNG" else ".weixin-tmp.jpg"
+    output_format = "JPEG"
+    tmp_suffix = ".weixin-tmp.jpg"
     tmp_path = file_path.with_suffix(tmp_suffix)
     with Image.open(file_path) as image:
         image = ImageOps.exif_transpose(image)
@@ -49,21 +48,15 @@ def normalize_image(file_path: Path) -> None:
         if max(image.size) > MAX_EDGE:
             image.thumbnail((MAX_EDGE, MAX_EDGE), Image.Resampling.LANCZOS)
 
-        if output_format == "PNG":
-            png_image = image
-            if png_image.mode not in {"RGB", "RGBA"}:
-                png_image = png_image.convert("RGBA" if "A" in png_image.getbands() else "RGB")
-            png_image.save(tmp_path, format="PNG", optimize=True)
-        else:
-            rgb = image.convert("RGB")
-            rgb.save(
-                tmp_path,
-                format="JPEG",
-                quality=JPEG_QUALITY,
-                optimize=True,
-                progressive=False,
-                subsampling=0,
-            )
+        rgb = image.convert("RGB")
+        rgb.save(
+            tmp_path,
+            format="JPEG",
+            quality=JPEG_QUALITY,
+            optimize=True,
+            progressive=False,
+            subsampling=0,
+        )
 
     tmp_path.replace(file_path)
     marker_path(file_path).write_text(
