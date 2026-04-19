@@ -9,6 +9,7 @@ OPENCLAW_AGENT_BROWSER_PACKAGE="${OPENCLAW_AGENT_BROWSER_PACKAGE:-agent-browser@
 OPENCLAW_DDG_SKILL="${OPENCLAW_DDG_SKILL:-ddg-web-search}"
 OPENCLAW_N2_SKILL="${OPENCLAW_N2_SKILL:-n2-free-search}"
 OPENCLAW_TAVILY_PACKAGE="${OPENCLAW_TAVILY_PACKAGE:-tavily-python}"
+OPENCLAW_PILLOW_PACKAGE="${OPENCLAW_PILLOW_PACKAGE:-Pillow}"
 
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
@@ -138,6 +139,23 @@ raise SystemExit(0 if importlib.util.find_spec("tavily") else 1)
 EOF
 }
 
+has_pillow() {
+  python3 - <<'EOF'
+import importlib.util
+raise SystemExit(0 if importlib.util.find_spec("PIL") else 1)
+EOF
+}
+
+sync_pillow() {
+  if has_pillow; then
+    hf_log INFO "Pillow already installed; skipping pip reinstall"
+    return 0
+  fi
+
+  hf_log INFO "installing Pillow package"
+  run_with_retry "Pillow pip install" python3 -m pip install --no-cache-dir --break-system-packages --upgrade "${OPENCLAW_PILLOW_PACKAGE}"
+}
+
 # 安装 Tavily Python SDK。
 # HF 已通过环境变量提供 TAVILY_API_KEY，这里只负责安装 SDK。
 sync_tavily_python() {
@@ -185,6 +203,7 @@ sync_openclaw_china_channels
 sync_openclaw_weixin
 sync_agent_browser
 sync_search_tools
+sync_pillow
 
 if [[ -x "${OPENCLAW_HF_INSTALL_ROOT}/bootstrap/install-extra.local.sh" ]]; then
   hf_log INFO "executing persisted install hook"

@@ -8,6 +8,7 @@ OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
 
 SYNC_PID=""
 IMAGE_BRIDGE_PID=""
+WEIXIN_NORMALIZER_PID=""
 STARTUP_LOG_FILE=""
 
 startup_log() {
@@ -885,6 +886,18 @@ start_qwen_image_bridge() {
   IMAGE_BRIDGE_PID="$!"
 }
 
+start_weixin_image_normalizer() {
+  local log_path watch_dir
+  watch_dir="$(hf_runtime_path "media")/tool-image-generation"
+  log_path="${OPENCLAW_HF_LOG_ROOT}/startup/weixin-image-normalizer.log"
+  mkdir -p "${watch_dir}"
+
+  startup_log INFO "starting weixin image normalizer for ${watch_dir}"
+  OPENCLAW_HF_WEIXIN_IMAGE_WATCH_DIR="${watch_dir}" \
+    python3 "${OPENCLAW_HF_APP_DIR}/weixin-image-normalizer.py" >> "${log_path}" 2>&1 &
+  WEIXIN_NORMALIZER_PID="$!"
+}
+
 start_gateway_probe_logger() {
   local gateway_port
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
@@ -935,6 +948,10 @@ run_gateway() {
 shutdown() {
   local exit_code=$?
   startup_log INFO "gateway wrapper shutting down"
+  if [[ -n "${WEIXIN_NORMALIZER_PID}" ]] && kill -0 "${WEIXIN_NORMALIZER_PID}" 2>/dev/null; then
+    kill -TERM "${WEIXIN_NORMALIZER_PID}" 2>/dev/null || true
+    wait "${WEIXIN_NORMALIZER_PID}" 2>/dev/null || true
+  fi
   if [[ -n "${IMAGE_BRIDGE_PID}" ]] && kill -0 "${IMAGE_BRIDGE_PID}" 2>/dev/null; then
     kill -TERM "${IMAGE_BRIDGE_PID}" 2>/dev/null || true
     wait "${IMAGE_BRIDGE_PID}" 2>/dev/null || true
@@ -967,6 +984,7 @@ clean_stale_channel_config_if_needed
 run_weixin_login_if_requested
 seed_hf_gateway_config
 start_qwen_image_bridge
+start_weixin_image_normalizer
 seed_hf_model_config
 seed_hf_china_channels_config
 seed_hf_search_provider_config
