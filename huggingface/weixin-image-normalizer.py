@@ -11,7 +11,7 @@ from PIL import Image, ImageOps
 
 
 WATCH_DIR = Path(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_WATCH_DIR", "/root/.openclaw/media/tool-image-generation"))
-MAX_EDGE = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MAX_EDGE", "2304"))
+MAX_EDGE = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MAX_EDGE", "2048"))
 JPEG_QUALITY = int(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_QUALITY", "100"))
 POLL_INTERVAL = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_POLL_INTERVAL", "1.5"))
 MIN_AGE_SECONDS = float(os.environ.get("OPENCLAW_HF_WEIXIN_IMAGE_MIN_AGE", "2.0"))
