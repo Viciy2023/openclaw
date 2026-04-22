@@ -11,9 +11,9 @@ ENV OPENCLAW_HF_GATEWAY_PORT=18789
 ENV OPENCLAW_HF_GATEWAY_BIND=lan
 ENV OPENCLAW_HF_GATEWAY_EXTRA_ARGS=
 ENV OPENCLAW_AGENT_BROWSER_CHROME_PATH=/usr/bin/chromium
-ENV OPENCLAW_WECOM_PLUGIN_PACKAGE=@openclaw-china/wecom
-ENV OPENCLAW_WECOM_APP_PLUGIN_PACKAGE=@openclaw-china/wecom-app
-ENV OPENCLAW_WEIXIN_PLUGIN_PACKAGE=@tencent-weixin/openclaw-weixin
+ENV OPENCLAW_WECOM_PLUGIN_TARBALL=https://registry.npmjs.org/@openclaw-china/wecom/-/wecom-2026.3.29.tgz
+ENV OPENCLAW_WECOM_APP_PLUGIN_TARBALL=https://registry.npmjs.org/@openclaw-china/wecom-app/-/wecom-app-2026.3.29.tgz
+ENV OPENCLAW_WEIXIN_PLUGIN_TARBALL=https://registry.npmjs.org/@tencent-weixin/openclaw-weixin/-/openclaw-weixin-2.1.9.tgz
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -65,16 +65,28 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/.openclaw /data /opt/openclaw-hf /opt/openclaw-hf/prebuilt/extensions /opt/openclaw-hf/prebuilt/skills /root/.openclaw/workspace/skills
 
-RUN tmp_config="/tmp/openclaw-build-config.json" && \
-    printf '{\n  "gateway": {\n    "mode": "local"\n  }\n}\n' > "${tmp_config}" && \
-    OPENCLAW_CONFIG="${tmp_config}" openclaw plugins install "${OPENCLAW_WECOM_PLUGIN_PACKAGE}" && \
-    OPENCLAW_CONFIG="${tmp_config}" openclaw plugins install "${OPENCLAW_WECOM_APP_PLUGIN_PACKAGE}" && \
-    OPENCLAW_CONFIG="${tmp_config}" openclaw plugins install "${OPENCLAW_WEIXIN_PLUGIN_PACKAGE}" && \
-    mkdir -p /opt/openclaw-hf/prebuilt/extensions && \
-    cp -a /root/.openclaw/extensions/wecom /opt/openclaw-hf/prebuilt/extensions/wecom && \
-    cp -a /root/.openclaw/extensions/wecom-app /opt/openclaw-hf/prebuilt/extensions/wecom-app && \
-    cp -a /root/.openclaw/extensions/openclaw-weixin /opt/openclaw-hf/prebuilt/extensions/openclaw-weixin && \
-    rm -f "${tmp_config}" /root/.openclaw/openclaw.json /root/.openclaw/openclaw.json.bak
+RUN set -euo pipefail; \
+    build_root="/tmp/openclaw-plugin-build"; \
+    mkdir -p "${build_root}" "/opt/openclaw-hf/prebuilt/extensions"; \
+    fetch_and_prepare_plugin() { \
+      plugin_id="$1"; \
+      tarball_url="$2"; \
+      plugin_root="${build_root}/${plugin_id}"; \
+      archive_path="${plugin_root}.tgz"; \
+      mkdir -p "${plugin_root}"; \
+      curl -fsSL "${tarball_url}" -o "${archive_path}"; \
+      tar -xzf "${archive_path}" -C "${plugin_root}"; \
+      if [ ! -d "${plugin_root}/package" ]; then \
+        echo "plugin archive missing package/ root: ${plugin_id}" >&2; \
+        exit 1; \
+      fi; \
+      npm install --omit=dev --prefix "${plugin_root}/package"; \
+      cp -a "${plugin_root}/package" "/opt/openclaw-hf/prebuilt/extensions/${plugin_id}"; \
+    }; \
+    fetch_and_prepare_plugin wecom "${OPENCLAW_WECOM_PLUGIN_TARBALL}"; \
+    fetch_and_prepare_plugin wecom-app "${OPENCLAW_WECOM_APP_PLUGIN_TARBALL}"; \
+    fetch_and_prepare_plugin openclaw-weixin "${OPENCLAW_WEIXIN_PLUGIN_TARBALL}"; \
+    rm -rf "${build_root}"
 
 RUN cd /root/.openclaw/workspace && \
     npx -y clawhub@latest install ddg-web-search --force && \
