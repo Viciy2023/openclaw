@@ -615,7 +615,6 @@ if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN 
     appSecret: env.FEISHU_APP_SECRET,
     verificationToken: env.FEISHU_VERIFICATION_TOKEN,
     encryptKey: env.FEISHU_ENCRYPT_KEY,
-    sendMarkdownAsCard: true,
   };
   parsed.env.vars.FEISHU_APP_ID = env.FEISHU_APP_ID;
   parsed.env.vars.FEISHU_APP_SECRET = env.FEISHU_APP_SECRET;
