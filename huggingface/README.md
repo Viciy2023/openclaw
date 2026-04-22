@@ -46,6 +46,7 @@ State handling model:
 
 Important environment variables:
 
+- `OPENCLAW_HF_BUCKET_ENV_FILE`: optional env file loaded before startup defaults are resolved. Default: `/data/.env`. Values from this file override Hugging Face Space environment variables with the same names.
 - `OPENCLAW_HF_DATA_ROOT`: persistent root under the mounted bucket. Default: `/data/openclaw`.
 - `OPENCLAW_HF_SYNC_ENABLED`: set to `0` to disable the background sync daemon.
 - `OPENCLAW_HF_GATEWAY_PORT`: gateway port. Default: `18789`.
@@ -60,6 +61,7 @@ Important environment variables:
 
 Notes:
 
+- If `/data/.env` exists, `start-hf.sh` loads it before sourcing the common HF helpers, so path and channel variables from the bucket file become the effective startup environment.
 - This layer does not modify OpenClaw core code.
 - Runtime state is restored into `/root/.openclaw` on startup, then synchronized back to `/data/openclaw` on a tiered schedule.
 - Temporary logs under `/tmp/openclaw` are archived into `/data/openclaw/logs/archive` rather than treated as strong persistent state.

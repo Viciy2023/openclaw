@@ -3,6 +3,41 @@
 set -euo pipefail
 
 OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
+OPENCLAW_HF_BUCKET_ENV_FILE="${OPENCLAW_HF_BUCKET_ENV_FILE:-/data/.env}"
+
+hf_load_bucket_env_file() {
+  local env_file="$1"
+  local source_status=0
+
+  if [[ ! -f "${env_file}" ]]; then
+    printf '[openclaw-hf][INFO] bucket env file not found: %s; using existing environment\n' "${env_file}"
+    return 0
+  fi
+
+  if [[ ! -r "${env_file}" ]]; then
+    printf '[openclaw-hf][ERROR] bucket env file is not readable: %s\n' "${env_file}" >&2
+    return 1
+  fi
+
+  # The bucket env file is operator-managed and should behave like a normal .env,
+  # including quoted values and inline assignments.
+  set +e
+  set -a
+  # shellcheck disable=SC1090
+  . "${env_file}"
+  source_status=$?
+  set +a
+  set -e
+
+  if (( source_status != 0 )); then
+    printf '[openclaw-hf][ERROR] failed to load bucket env file: %s\n' "${env_file}" >&2
+    return "${source_status}"
+  fi
+
+  printf '[openclaw-hf][INFO] loaded bucket env file: %s (overrides HF environment variables)\n' "${env_file}"
+}
+
+hf_load_bucket_env_file "${OPENCLAW_HF_BUCKET_ENV_FILE}"
 
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
@@ -311,8 +346,11 @@ resolve_primary_model_slot() {
     4|FOURTH)
       printf 'FOURTH\n'
       ;;
+    5|FIFTH)
+      printf 'FIFTH\n'
+      ;;
     *)
-      startup_log ERROR "invalid OPENCLAW_PRIMARY_MODEL_SET=${raw_slot}; expected FIRST/SECOND/THIRD/FOURTH or 1/2/3/4"
+      startup_log ERROR "invalid OPENCLAW_PRIMARY_MODEL_SET=${raw_slot}; expected FIRST/SECOND/THIRD/FOURTH/FIFTH or 1/2/3/4/5"
       return 1
       ;;
   esac
@@ -457,6 +495,7 @@ fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
 
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
+  startup_log INFO "HF primary model target: slot=${selected_slot} url=${primary_url} model=${primary_model}"
   startup_log INFO "HF image provider baseUrl=${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_HOST:-127.0.0.1}:${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT:-18891} upstream=${text_to_image_url:-<unset>}"
   if [[ -n "${text_to_image_model}" && -n "${image_to_video_model}" ]] && ! node - <<'EOF' "${text_to_image_url:-${primary_url}}" "${text_to_image_key:-${primary_key}}" "${image_to_video_url:-${text_to_image_url:-${primary_url}}}" "${image_to_video_key:-${text_to_image_key:-${primary_key}}}"
 const [leftUrl, leftKey, rightUrl, rightKey] = process.argv.slice(2);

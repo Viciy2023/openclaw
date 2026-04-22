@@ -3,6 +3,36 @@
 set -euo pipefail
 
 OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
+OPENCLAW_HF_BUCKET_ENV_FILE="${OPENCLAW_HF_BUCKET_ENV_FILE:-/data/.env}"
+
+hf_load_bucket_env_file() {
+  local env_file="$1"
+  local source_status=0
+
+  if [[ ! -f "${env_file}" ]]; then
+    return 0
+  fi
+
+  if [[ ! -r "${env_file}" ]]; then
+    printf 'bucket env file is not readable: %s\n' "${env_file}" >&2
+    return 1
+  fi
+
+  set +e
+  set -a
+  # shellcheck disable=SC1090
+  . "${env_file}"
+  source_status=$?
+  set +a
+  set -e
+
+  if (( source_status != 0 )); then
+    printf 'failed to load bucket env file: %s\n' "${env_file}" >&2
+    return "${source_status}"
+  fi
+}
+
+hf_load_bucket_env_file "${OPENCLAW_HF_BUCKET_ENV_FILE}"
 
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
