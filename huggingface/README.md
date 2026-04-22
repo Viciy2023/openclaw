@@ -1,5 +1,5 @@
 ---
-title: OpenClaw Worker
+title: Workers
 emoji: "🦀"
 colorFrom: blue
 colorTo: indigo
