@@ -574,8 +574,6 @@ if (
 }
 
 if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
-  // 当前 HF China 统一渠道插件已经内置 qqbot，避免与主配置里可能存在的原生 qqbot 注册冲突。
-  // 这里仍把 qqbot 的运行参数写入 channels.qqbot，由 China 插件接管。
   parsed.channels.qqbot = {
     enabled: true,
     appId: env.QQBOT_APP_ID,
@@ -604,7 +602,6 @@ if (env.QQBOT_APP_ID && env.QQBOT_CLIENT_SECRET) {
   parsed.env.vars.QQBOT_CLIENT_SECRET = env.QQBOT_CLIENT_SECRET;
 }
 
-// 如果历史配置里存在 core 原生 qqbot 入口，这里清掉，避免和 channels 插件重复注册 qqbot。
 parsed.plugins = ensureObject(parsed.plugins);
 parsed.plugins.entries = ensureObject(parsed.plugins.entries);
 if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "qqbot")) {
@@ -612,7 +609,7 @@ if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "qqbot")) {
 }
 
 if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
-  parsed.channels["feishu-china"] = {
+  parsed.channels.feishu = {
     enabled: true,
     appId: env.FEISHU_APP_ID,
     appSecret: env.FEISHU_APP_SECRET,
@@ -656,9 +653,8 @@ if (env.WEIXIN_ACCOUNT_ID && env.WEIXIN_BASE_URL && env.WEIXIN_CDN_BASE_URL) {
   parsed.env.vars.WEIXIN_CONFIG_MISSING = missing.join(",");
 }
 
-if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
-  delete parsed.plugins.entries.channels;
-}
+parsed.plugins.entries.wecom = { enabled: true };
+parsed.plugins.entries["wecom-app"] = { enabled: true };
 parsed.plugins.entries["openclaw-weixin"] = {
   enabled: true,
 };
@@ -703,7 +699,7 @@ const ensureObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 
 parsed.channels = ensureObject(parsed.channels);
-  for (const staleChannelId of ["wecom", "wecom-app", "qqbot", "feishu-china", "openclaw-weixin"]) {
+  for (const staleChannelId of ["wecom", "wecom-app", "qqbot", "feishu", "openclaw-weixin"]) {
     if (Object.prototype.hasOwnProperty.call(parsed.channels, staleChannelId)) {
       delete parsed.channels[staleChannelId];
     }
@@ -711,15 +707,18 @@ parsed.channels = ensureObject(parsed.channels);
 
   parsed.plugins = ensureObject(parsed.plugins);
   parsed.plugins.entries = ensureObject(parsed.plugins.entries);
-  if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "channels")) {
-    delete parsed.plugins.entries.channels;
+  if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "wecom")) {
+    delete parsed.plugins.entries.wecom;
+  }
+  if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "wecom-app")) {
+    delete parsed.plugins.entries["wecom-app"];
   }
   if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "openclaw-weixin")) {
     delete parsed.plugins.entries["openclaw-weixin"];
   }
 
   if (Array.isArray(parsed.plugins.allow)) {
-    parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels" && entry !== "openclaw-weixin");
+    parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels" && entry !== "wecom" && entry !== "wecom-app" && entry !== "openclaw-weixin");
     if (parsed.plugins.allow.length === 0) {
       delete parsed.plugins.allow;
     }
@@ -732,11 +731,15 @@ EOF
 }
 
 # 只有在第三方渠道插件目录缺失时，才清理历史配置。
-# 这样可以避免系统已经稳定运行后，每次重启都把 channels.* 先删掉再写回，造成启动慢和配置抖动。
+# 这样可以避免系统已经稳定运行后，每次重启都把中国渠道相关配置先删掉再写回，造成启动慢和配置抖动。
 clean_stale_channel_config_if_needed() {
   local needs_cleanup=0
 
-  if [[ ! -d "/root/.openclaw/extensions/channels" ]]; then
+  if [[ ! -d "/root/.openclaw/extensions/wecom" ]]; then
+    needs_cleanup=1
+  fi
+
+  if [[ ! -d "/root/.openclaw/extensions/wecom-app" ]]; then
     needs_cleanup=1
   fi
 

@@ -20,7 +20,7 @@ OPENCLAW_HF_LIGHT_MANIFEST_MODE="${OPENCLAW_HF_LIGHT_MANIFEST_MODE:-1}"
 
 OPENCLAW_HF_LINKED_FILES=("openclaw.json" "auth-profiles.json")
 OPENCLAW_HF_LINKED_DIRS=("credentials" "agents" "workspace" "openclaw-weixin")
-OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media")
+OPENCLAW_HF_LOCAL_SYNC_DIRS=("cron" "media" "extensions")
 OPENCLAW_HF_EXTERNAL_LINKED_DIRS=()
 
 hf_log() {
