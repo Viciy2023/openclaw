@@ -295,12 +295,17 @@ EOF
     return 0
   fi
 
-  node - <<'EOF' "${config_path}"
+  node - <<'EOF' "${config_path}" "${OPENCLAW_HF_CONTROL_UI_ALLOW_INSECURE_AUTH:-0}" "${OPENCLAW_HF_CONTROL_UI_DANGEROUSLY_DISABLE_DEVICE_AUTH:-0}" "${OPENCLAW_HF_CONTROL_UI_DANGEROUSLY_ALLOW_HOST_HEADER_ORIGIN_FALLBACK:-1}"
 const fs = require("node:fs");
 
 const configPath = process.argv[2];
+const allowInsecureAuthRaw = process.argv[3];
+const disableDeviceAuthRaw = process.argv[4];
+const hostHeaderFallbackRaw = process.argv[5];
 const raw = fs.readFileSync(configPath, "utf8");
 const parsed = JSON.parse(raw);
+
+const isTruthy = (value) => ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
 
 if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
   throw new Error("openclaw.json root must be an object");
@@ -319,9 +324,9 @@ parsed.gateway.controlUi =
     ? parsed.gateway.controlUi
     : {};
 
-if (parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback !== true) {
-  parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
-}
+parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = isTruthy(hostHeaderFallbackRaw);
+parsed.gateway.controlUi.allowInsecureAuth = isTruthy(allowInsecureAuthRaw);
+parsed.gateway.controlUi.dangerouslyDisableDeviceAuth = isTruthy(disableDeviceAuthRaw);
 
 fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
