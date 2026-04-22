@@ -65,7 +65,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/.openclaw /data /opt/openclaw-hf /opt/openclaw-hf/prebuilt/extensions /opt/openclaw-hf/prebuilt/skills /root/.openclaw/workspace/skills
 
-RUN set -euo pipefail; \
+RUN bash -lc 'set -euo pipefail; \
     build_root="/tmp/openclaw-plugin-build"; \
     mkdir -p "${build_root}" "/opt/openclaw-hf/prebuilt/extensions"; \
     fetch_and_prepare_plugin() { \
@@ -86,7 +86,7 @@ RUN set -euo pipefail; \
     fetch_and_prepare_plugin wecom "${OPENCLAW_WECOM_PLUGIN_TARBALL}"; \
     fetch_and_prepare_plugin wecom-app "${OPENCLAW_WECOM_APP_PLUGIN_TARBALL}"; \
     fetch_and_prepare_plugin openclaw-weixin "${OPENCLAW_WEIXIN_PLUGIN_TARBALL}"; \
-    rm -rf "${build_root}"
+    rm -rf "${build_root}"'
 
 RUN cd /root/.openclaw/workspace && \
     npx -y clawhub@latest install ddg-web-search --force && \
