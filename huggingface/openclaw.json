@@ -102,13 +102,12 @@
         "secretKey": "replace-with-qqbot-asr-secret-key"
       }
     },
-    "feishu-china": {
+    "feishu": {
       "enabled": false,
       "appId": "replace-with-feishu-app-id",
       "appSecret": "replace-with-feishu-app-secret",
       "verificationToken": "replace-with-feishu-verification-token",
-      "encryptKey": "replace-with-feishu-encrypt-key",
-      "sendMarkdownAsCard": true
+      "encryptKey": "replace-with-feishu-encrypt-key"
     }
   },
   "meta": {
