@@ -15,6 +15,8 @@ ENV OPENCLAW_WECOM_PLUGIN_TARBALL=https://registry.npmjs.org/@openclaw-china/wec
 ENV OPENCLAW_WECOM_APP_PLUGIN_TARBALL=https://registry.npmjs.org/@openclaw-china/wecom-app/-/wecom-app-2026.3.29.tgz
 ENV OPENCLAW_WEIXIN_PLUGIN_TARBALL=https://registry.npmjs.org/@tencent-weixin/openclaw-weixin/-/openclaw-weixin-2.1.9.tgz
 
+RUN node -e "const fs=require('node:fs'); const path='/app/package.json'; const pkg=JSON.parse(fs.readFileSync(path,'utf8')); if (pkg.dependencies) delete pkg.dependencies['@whiskeysockets/baileys']; if (pkg.pnpm?.onlyBuiltDependencies && Array.isArray(pkg.pnpm.onlyBuiltDependencies)) { pkg.pnpm.onlyBuiltDependencies = pkg.pnpm.onlyBuiltDependencies.filter((entry) => entry !== '@whiskeysockets/baileys'); } if (pkg.pnpm?.patchedDependencies) { delete pkg.pnpm.patchedDependencies['@whiskeysockets/baileys@7.0.0-rc.9']; if (Object.keys(pkg.pnpm.patchedDependencies).length === 0) delete pkg.pnpm.patchedDependencies; } fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');"
+
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       bash \
