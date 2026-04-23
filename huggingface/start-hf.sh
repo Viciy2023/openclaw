@@ -419,9 +419,6 @@ const [
 
 const raw = fs.readFileSync(configPath, "utf8");
 const parsed = JSON.parse(raw);
-const qwenImageBridgePort = process.env.OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT || "18891";
-const qwenImageBridgeBaseUrl = `http://127.0.0.1:${qwenImageBridgePort}/v1`;
-
 const ensureObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 
@@ -450,9 +447,11 @@ parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey,
 ]);
 
 if (textToImageModel || imageToImageModel) {
+  const imageProviderBaseUrl = textToImageUrl || imageToImageUrl || imageToVideoUrl || primaryUrl;
+  const imageProviderApiKey = textToImageKey || imageToImageKey || imageToVideoKey || primaryKey;
   parsed.models.providers.openai = makeProvider(
-    qwenImageBridgeBaseUrl,
-    textToImageKey || imageToImageKey || primaryKey,
+    imageProviderBaseUrl,
+    imageProviderApiKey,
     [
       ...(textToImageModel ? [{ id: textToImageModel, name: "HF Text To Image" }] : []),
       ...(imageToImageModel ? [{ id: imageToImageModel, name: "HF Image To Image" }] : []),
@@ -501,7 +500,7 @@ EOF
 
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
   startup_log INFO "HF primary model target: slot=${selected_slot} url=${primary_url} model=${primary_model}"
-  startup_log INFO "HF image provider baseUrl=${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_HOST:-127.0.0.1}:${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT:-18891} upstream=${text_to_image_url:-<unset>}"
+  startup_log INFO "HF image provider upstream=${text_to_image_url:-<unset>}"
   if [[ -n "${text_to_image_model}" && -n "${image_to_video_model}" ]] && ! node - <<'EOF' "${text_to_image_url:-${primary_url}}" "${text_to_image_key:-${primary_key}}" "${image_to_video_url:-${text_to_image_url:-${primary_url}}}" "${image_to_video_key:-${text_to_image_key:-${primary_key}}}"
 const [leftUrl, leftKey, rightUrl, rightKey] = process.argv.slice(2);
 process.exit(leftUrl === rightUrl && leftKey === rightKey ? 0 : 1);
@@ -910,26 +909,7 @@ start_syncd() {
 }
 
 start_qwen_image_bridge() {
-  local bridge_port bridge_host upstream key log_path
-  upstream="${OPENCLAW_TEXT_TO_IMAGE_URL:-}"
-  key="${OPENCLAW_TEXT_TO_IMAGE_KEY:-}"
-
-  if [[ -z "${upstream}" || -z "${key}" ]]; then
-    startup_log INFO "qwen image bridge skipped because OPENCLAW_TEXT_TO_IMAGE_URL/KEY is unset"
-    return 0
-  fi
-
-  bridge_host="${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_HOST:-127.0.0.1}"
-  bridge_port="${OPENCLAW_HF_QWEN_IMAGE_BRIDGE_PORT:-18891}"
-  log_path="${OPENCLAW_HF_LOG_ROOT}/startup/qwen-image-bridge.log"
-
-  startup_log INFO "starting qwen image bridge on http://${bridge_host}:${bridge_port} -> ${upstream}"
-  OPENCLAW_QWEN_IMAGE_BRIDGE_HOST="${bridge_host}" \
-  OPENCLAW_QWEN_IMAGE_BRIDGE_PORT="${bridge_port}" \
-  OPENCLAW_QWEN_IMAGE_BRIDGE_UPSTREAM="${upstream}" \
-  OPENCLAW_QWEN_IMAGE_BRIDGE_KEY="${key}" \
-    python3 "${OPENCLAW_HF_APP_DIR}/qwen-image-bridge.py" >> "${log_path}" 2>&1 &
-  IMAGE_BRIDGE_PID="$!"
+  startup_log INFO "qwen image bridge disabled; upstream image API now returns b64_json directly"
 }
 
 start_weixin_image_normalizer() {
@@ -1019,7 +999,7 @@ startup_log INFO "wrapper initialized"
 startup_log INFO "runtime root: ${OPENCLAW_HF_RUNTIME_ROOT}"
 startup_log INFO "live root: ${OPENCLAW_HF_LIVE_ROOT}"
 startup_log INFO "state link mode: ${OPENCLAW_HF_STATE_LINK_MODE}"
-startup_log INFO "local image provider allowlist: ${OPENCLAW_QA_ALLOW_LOCAL_IMAGE_PROVIDER:-<unset>}"
+startup_log INFO "local image provider allowlist (unused for current direct image upstream): ${OPENCLAW_QA_ALLOW_LOCAL_IMAGE_PROVIDER:-<unset>}"
 print_outbound_ip
 
 restore_runtime_state
