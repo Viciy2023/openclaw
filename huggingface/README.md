@@ -52,6 +52,7 @@ Important environment variables:
 - `OPENCLAW_HF_GATEWAY_PORT`: gateway port. Default: `18789`.
 - `OPENCLAW_HF_GATEWAY_BIND`: gateway bind mode. Default: `lan`.
 - `OPENCLAW_HF_GATEWAY_EXTRA_ARGS`: extra arguments appended to `openclaw gateway run`.
+- `OPENCLAW_HF_ENABLE_BONJOUR`: set to `1` only if your HF runtime really supports mDNS/Bonjour. Default: disabled, because HF container networking can cause `@homebridge/ciao` probing failures that crash the process.
 - `OPENCLAW_HF_STATE_LINK_MODE`: `mixed` or `copy`. Default: `mixed`.
 - `OPENCLAW_HF_SNAPSHOT_LIMIT`: max retained snapshots per snapshot directory. Default: `20`.
 - `OPENCLAW_HF_MANIFEST_HASH_LIMIT_BYTES`: hash only files up to this size when writing manifests. Default: `10485760`.

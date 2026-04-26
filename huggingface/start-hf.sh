@@ -960,6 +960,13 @@ run_gateway() {
   gateway_port="${OPENCLAW_HF_GATEWAY_PORT:-18789}"
   gateway_bind="${OPENCLAW_HF_GATEWAY_BIND:-lan}"
 
+  # HF Space 容器网络里没有稳定的局域网 mDNS 广播环境。
+  # 默认关闭 bonjour，避免 @homebridge/ciao 在 probing/re-advertise 时抛出未处理拒绝把进程带崩。
+  if [[ "${OPENCLAW_HF_ENABLE_BONJOUR:-0}" != "1" ]]; then
+    export OPENCLAW_DISABLE_BONJOUR=1
+    startup_log INFO "HF runtime disables bonjour/mDNS advertising by default (set OPENCLAW_HF_ENABLE_BONJOUR=1 to override)"
+  fi
+
   startup_log INFO "starting OpenClaw gateway as root-global install"
   start_gateway_probe_logger
 
