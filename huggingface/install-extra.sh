@@ -176,6 +176,26 @@ EOF
   hf_log INFO "wrote wechat-allauto-gzh credentials.json to ${creds_path}"
 }
 
+test_wechat_gzh_token_connectivity() {
+  if [[ -z "${WECHAT_APP_ID:-}" || -z "${WECHAT_APP_SECRET:-}" ]]; then
+    hf_log WARN "WECHAT_APP_ID or WECHAT_APP_SECRET is unset; skipping WeChat Official Account token connectivity test"
+    return 0
+  fi
+
+  local token_url response errcode errmsg
+  token_url="https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${WECHAT_APP_ID}&secret=${WECHAT_APP_SECRET}"
+  response="$(curl -s --max-time 10 "${token_url}" || printf '{"errcode":-1,"errmsg":"network error"}')"
+
+  if printf '%s' "${response}" | grep -q '"access_token"'; then
+    hf_log INFO "WeChat Official Account token connectivity check passed"
+    return 0
+  fi
+
+  errcode="$(printf '%s' "${response}" | grep -o '"errcode":[0-9-]*' | cut -d':' -f2 | head -n 1 || true)"
+  errmsg="$(printf '%s' "${response}" | grep -o '"errmsg":"[^"]*"' | cut -d'"' -f4 | head -n 1 || true)"
+  hf_log WARN "WeChat Official Account token connectivity check failed errcode=${errcode:-unknown} errmsg=${errmsg:-unknown}"
+}
+
 hf_log INFO "running install-extra hook"
 hf_log INFO "text-to-image model set=${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET}"
 
@@ -190,6 +210,7 @@ require_agent_browser
 require_search_tools
 ensure_wechat_gzh_workspace_project
 write_wechat_gzh_credentials
+test_wechat_gzh_token_connectivity
 
 if [[ -x "${OPENCLAW_HF_INSTALL_ROOT}/bootstrap/install-extra.local.sh" ]]; then
   hf_log INFO "executing persisted install hook"

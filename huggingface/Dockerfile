@@ -104,9 +104,10 @@ COPY syncd.sh /opt/openclaw-hf/syncd.sh
 COPY hf-sync.sh /opt/openclaw-hf/hf-sync.sh
 COPY qwen-image-bridge.py /opt/openclaw-hf/qwen-image-bridge.py
 COPY weixin-image-normalizer.py /opt/openclaw-hf/weixin-image-normalizer.py
+COPY wechat-gzh-draft-bridge.py /opt/openclaw-hf/wechat-gzh-draft-bridge.py
 COPY start-hf.sh /opt/openclaw-hf/start-hf.sh
 
-RUN chmod 755 /opt/openclaw-hf/install-extra.sh /opt/openclaw-hf/syncd.sh /opt/openclaw-hf/hf-sync.sh /opt/openclaw-hf/qwen-image-bridge.py /opt/openclaw-hf/weixin-image-normalizer.py /opt/openclaw-hf/start-hf.sh && \
+RUN chmod 755 /opt/openclaw-hf/install-extra.sh /opt/openclaw-hf/syncd.sh /opt/openclaw-hf/hf-sync.sh /opt/openclaw-hf/qwen-image-bridge.py /opt/openclaw-hf/weixin-image-normalizer.py /opt/openclaw-hf/wechat-gzh-draft-bridge.py /opt/openclaw-hf/start-hf.sh && \
     chmod 644 /opt/openclaw-hf/lib/common.sh
 
 WORKDIR /root
