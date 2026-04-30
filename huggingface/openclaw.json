@@ -23,7 +23,7 @@
           }
         ]
       },
-      "hf-openai-image": {
+      "openai": {
         "api": "openai-completions",
         "auth": "api-key",
         "baseUrl": "https://example.invalid/v1",
@@ -32,15 +32,7 @@
           {
             "id": "placeholder-text-to-image",
             "name": "HF Text To Image Placeholder"
-          }
-        ]
-      },
-      "openai": {
-        "api": "openai-completions",
-        "auth": "api-key",
-        "baseUrl": "https://example.invalid/v1",
-        "apiKey": "replace-me",
-        "models": [
+          },
           {
             "id": "placeholder-image-to-image",
             "name": "HF Image To Image Placeholder"
@@ -59,7 +51,7 @@
         "primary": "hf-openai/placeholder-primary"
       },
       "imageGenerationModel": {
-        "primary": "hf-openai-image/placeholder-text-to-image"
+        "primary": "openai/placeholder-text-to-image"
       },
       "videoGenerationModel": {
         "primary": "openai/placeholder-image-to-video"

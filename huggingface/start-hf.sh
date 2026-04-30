@@ -445,7 +445,7 @@ seed_hf_model_config() {
       text_to_image_model="${text_to_image_second_model}"
       ;;
   esac
-  selected_text_to_image_provider_ref="hf-openai-image/${text_to_image_model}"
+  selected_text_to_image_provider_ref="openai/${text_to_image_model}"
 
   if [[ -n "${text_to_image_first_url}${text_to_image_first_key}${text_to_image_first_model}" ]] && [[ -z "${text_to_image_first_url}" || -z "${text_to_image_first_key}" || -z "${text_to_image_first_model}" ]]; then
     startup_log WARN "text-to-image FIRST model set is partially configured; expected OPENCLAW_TEXT_TO_IMAGE_FIRST_URL, OPENCLAW_TEXT_TO_IMAGE_FIRST_KEY, OPENCLAW_TEXT_TO_IMAGE_FIRST_MODEL"
@@ -517,33 +517,55 @@ parsed.models.mode = parsed.models.mode ?? "merge";
 parsed.models.providers = ensureObject(parsed.models.providers);
 
 delete parsed.models.providers["hf-openai"];
-delete parsed.models.providers["hf-openai-image"];
+  delete parsed.models.providers["hf-openai-image"];
 delete parsed.models.providers["hf-openai-video"];
 
 parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey, [
   { id: primaryModel, name: `HF Primary ${selectedSlot}` },
 ]);
 
-if (textToImageModel) {
-  parsed.models.providers["hf-openai-image"] = makeProvider(textToImageUrl, textToImageKey, [
-    { id: textToImageModel, name: `HF Text To Image ${selectedTextToImageSlot}` },
-  ]);
-}
+  if (textToImageModel) {
+    const existingOpenAiProvider = ensureObject(parsed.models.providers.openai);
+    const existingOpenAiModels = Array.isArray(existingOpenAiProvider.models)
+      ? existingOpenAiProvider.models.filter(
+          (model) =>
+            model &&
+            typeof model === "object" &&
+            typeof model.id === "string" &&
+            model.id !== textToImageModel &&
+            model.id !== imageToImageModel &&
+            model.id !== imageToVideoModel,
+        )
+      : [];
 
-if (imageToImageModel || imageToVideoModel) {
-  const imageProviderBaseUrl = imageToImageUrl || imageToVideoUrl || textToImageUrl || primaryUrl;
-  const imageProviderApiKey = imageToImageKey || imageToVideoKey || textToImageKey || primaryKey;
-  parsed.models.providers.openai = makeProvider(
-    imageProviderBaseUrl,
-    imageProviderApiKey,
-    [
+    parsed.models.providers.openai = makeProvider(textToImageUrl, textToImageKey, [
+      { id: textToImageModel, name: `HF Text To Image ${selectedTextToImageSlot}` },
+      ...existingOpenAiModels,
+    ]);
+  }
+
+  if (imageToImageModel || imageToVideoModel) {
+    const existingOpenAiProvider = ensureObject(parsed.models.providers.openai);
+    const existingOpenAiModels = Array.isArray(existingOpenAiProvider.models)
+      ? existingOpenAiProvider.models.filter(
+          (model) =>
+            model &&
+            typeof model === "object" &&
+            typeof model.id === "string" &&
+            model.id !== imageToImageModel &&
+            model.id !== imageToVideoModel,
+        )
+      : [];
+    const imageProviderBaseUrl = imageToImageUrl || imageToVideoUrl || textToImageUrl || primaryUrl;
+    const imageProviderApiKey = imageToImageKey || imageToVideoKey || textToImageKey || primaryKey;
+    parsed.models.providers.openai = makeProvider(imageProviderBaseUrl, imageProviderApiKey, [
+      ...existingOpenAiModels,
       ...(imageToImageModel ? [{ id: imageToImageModel, name: "HF Image To Image" }] : []),
       ...(imageToVideoModel ? [{ id: imageToVideoModel, name: "HF Image To Video" }] : []),
-    ],
-  );
-} else {
-  delete parsed.models.providers.openai;
-}
+    ]);
+  } else if (!textToImageModel) {
+    delete parsed.models.providers.openai;
+  }
 
 parsed.agents = ensureObject(parsed.agents);
 parsed.agents.defaults = ensureObject(parsed.agents.defaults);
@@ -551,7 +573,7 @@ parsed.agents.defaults.model = { primary: `hf-openai-chat/${primaryModel}` };
 
 if (textToImageModel) {
   parsed.agents.defaults.imageGenerationModel = {
-    primary: `hf-openai-image/${textToImageModel}`,
+    primary: `openai/${textToImageModel}`,
   };
 }
 
