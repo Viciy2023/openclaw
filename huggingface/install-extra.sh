@@ -179,7 +179,8 @@ EOF
   hf_log INFO "wrote wechat-allauto-gzh credentials.json to ${creds_path}"
   masked_app_id="${WECHAT_APP_ID:0:4}...${WECHAT_APP_ID: -4}"
   masked_app_secret="${WECHAT_APP_SECRET:0:4}...${WECHAT_APP_SECRET: -4}"
-  hf_log INFO "wechat-allauto-gzh credentials summary path=${creds_path} app_id=${masked_app_id} app_secret=${masked_app_secret}"
+  hf_log INFO "wechat-allauto-gzh credentials summary path=${creds_path}"
+  hf_log INFO "wechat-allauto-gzh credentials summary json={\"app_id\":\"${masked_app_id}\",\"app_secret\":\"${masked_app_secret}\"}"
 }
 
 test_wechat_gzh_token_connectivity() {
