@@ -50,6 +50,7 @@
       "model": {
         "primary": "hf-openai/placeholder-primary"
       },
+      "bootstrapMaxChars": 50000,
       "imageGenerationModel": {
         "primary": "openai/placeholder-text-to-image"
       },

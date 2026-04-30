@@ -121,6 +121,7 @@ require_search_tools() {
 ensure_clawedit_extension() {
   local source_dir="${OPENCLAW_HF_CLAWEDIT_SOURCE_DIR}"
   local runtime_dir="${OPENCLAW_HF_CLAWEDIT_RUNTIME_DIR}"
+  local runtime_uid runtime_gid
 
   if [[ ! -d "${source_dir}" ]]; then
     hf_log WARN "clawedit source directory is missing at ${source_dir}; skipping extension restore"
@@ -130,6 +131,9 @@ ensure_clawedit_extension() {
   mkdir -p "$(dirname "${runtime_dir}")"
   rm -rf "${runtime_dir}"
   cp -a "${source_dir}" "${runtime_dir}"
+  runtime_uid="$(id -u)"
+  runtime_gid="$(id -g)"
+  chown -R "${runtime_uid}:${runtime_gid}" "${runtime_dir}"
   hf_log INFO "restored clawedit extension from ${source_dir}"
 }
 

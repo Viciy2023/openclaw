@@ -289,6 +289,11 @@ seed_hf_gateway_config() {
     "controlUi": {
       "dangerouslyAllowHostHeaderOriginFallback": true
     }
+  },
+  "agents": {
+    "defaults": {
+      "bootstrapMaxChars": 50000
+    }
   }
 }
 EOF
@@ -320,6 +325,16 @@ if (parsed.gateway.mode == null) {
   parsed.gateway.mode = "local";
 }
 
+parsed.agents =
+  typeof parsed.agents === "object" && parsed.agents !== null && !Array.isArray(parsed.agents)
+    ? parsed.agents
+    : {};
+
+parsed.agents.defaults =
+  typeof parsed.agents.defaults === "object" && parsed.agents.defaults !== null && !Array.isArray(parsed.agents.defaults)
+    ? parsed.agents.defaults
+    : {};
+
 parsed.gateway.controlUi =
   typeof parsed.gateway.controlUi === "object" && parsed.gateway.controlUi !== null && !Array.isArray(parsed.gateway.controlUi)
     ? parsed.gateway.controlUi
@@ -328,6 +343,7 @@ parsed.gateway.controlUi =
 parsed.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = isTruthy(hostHeaderFallbackRaw);
 parsed.gateway.controlUi.allowInsecureAuth = isTruthy(allowInsecureAuthRaw);
 parsed.gateway.controlUi.dangerouslyDisableDeviceAuth = isTruthy(disableDeviceAuthRaw);
+parsed.agents.defaults.bootstrapMaxChars = 50000;
 
 fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
 EOF
@@ -728,6 +744,13 @@ if (Object.prototype.hasOwnProperty.call(parsed.plugins.entries, "qqbot")) {
   delete parsed.plugins.entries.qqbot;
 }
 
+const existingAllow = Array.isArray(parsed.plugins.allow)
+  ? parsed.plugins.allow.filter((entry) => typeof entry === "string" && entry.trim())
+  : [];
+const allowSet = new Set(existingAllow);
+allowSet.add("clawedit");
+parsed.plugins.allow = Array.from(allowSet);
+
 if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
   parsed.channels.feishu = {
     enabled: true,
@@ -779,6 +802,9 @@ parsed.plugins.entries["openclaw-weixin"] = {
 };
 if (Array.isArray(parsed.plugins.allow)) {
   parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels");
+  if (!parsed.plugins.allow.includes("clawedit")) {
+    parsed.plugins.allow.push("clawedit");
+  }
   if (parsed.plugins.allow.length === 0) {
     delete parsed.plugins.allow;
   }
