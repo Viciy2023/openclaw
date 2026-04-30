@@ -76,6 +76,7 @@ touch "${SYNC_LOG_FILE}"
 
 log_syncd INFO "sync daemon started"
 log_syncd INFO "runtime root=${OPENCLAW_HF_RUNTIME_ROOT} live root=${OPENCLAW_HF_LIVE_ROOT}"
+log_syncd INFO "text-to-image model set=${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET:-FIRST}"
 
 while true; do
   current_tier="$(hf_queue_get)"

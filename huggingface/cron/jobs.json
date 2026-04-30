@@ -46,6 +46,98 @@
         "channel": "openclaw-weixin",
         "to": "__WEIXIN_TO__"
       }
+    },
+    {
+      "id": "hf-hotspot-monitoring-morning",
+      "name": "hotspot-monitoring-morning",
+      "description": "08:30 监控各平台热点话题",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 8 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "现在是北京时间 08:30，请监控各平台热点话题，筛选值得关注的重点内容，并输出简洁中文汇报到微信。请注明热点主题、来源平台、热度变化趋势和建议跟进方向；未核实信息必须明确标注待核实。"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
+    },
+    {
+      "id": "hf-hotspot-monitoring-evening",
+      "name": "hotspot-monitoring-evening",
+      "description": "18:00 监控各平台热点话题",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 18 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "现在是北京时间 18:00，请监控各平台热点话题，筛选值得关注的重点内容，并输出简洁中文汇报到微信。请注明热点主题、来源平台、热度变化趋势和建议跟进方向；未核实信息必须明确标注待核实。"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
+    },
+    {
+      "id": "hf-daily-report",
+      "name": "daily-report",
+      "description": "23:55 生成当日工作日报",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "55 23 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "现在是北京时间 23:55，请生成当日工作日报，并发送到微信。内容包括今日重点工作、关键数据或观察、问题与风险、处理进展，以及明日工作计划。要求简洁、条理清晰、使用中文。"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
+    },
+    {
+      "id": "hf-system-health-check",
+      "name": "system-health-check",
+      "description": "每 120 分钟检查系统状态",
+      "enabled": true,
+      "createdAtMs": 1771056000000,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */2 * * *",
+        "tz": "Asia/Shanghai"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "请执行系统健康检查，重点检查网关状态、接口连通性、任务调度与消息发送链路。如发现异常，输出简洁中文告警到微信；如无异常，输出简短正常状态摘要。"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "openclaw-weixin",
+        "to": "__WEIXIN_TO__"
+      }
     }
   ]
 }

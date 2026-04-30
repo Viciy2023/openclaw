@@ -42,6 +42,7 @@ cmd_status() {
   printf 'liveRoot=%s\n' "${OPENCLAW_HF_LIVE_ROOT}"
   printf 'queueTier=%s\n' "$(hf_queue_get)"
   printf 'stateLinkMode=%s\n' "${OPENCLAW_HF_STATE_LINK_MODE}"
+  printf 'textToImageModelSet=%s\n' "${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET:-FIRST}"
   printf 'manifests:\n'
   find "${OPENCLAW_HF_SYNC_ROOT}/manifests" -maxdepth 1 -type f -name '*.json' | sort
 }

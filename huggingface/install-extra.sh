@@ -5,6 +5,11 @@ set -euo pipefail
 OPENCLAW_HF_APP_DIR="${OPENCLAW_HF_APP_DIR:-/opt/openclaw-hf}"
 OPENCLAW_DDG_SKILL="${OPENCLAW_DDG_SKILL:-ddg-web-search}"
 OPENCLAW_N2_SKILL="${OPENCLAW_N2_SKILL:-n2-free-search}"
+OPENCLAW_TEXT_TO_IMAGE_MODEL_SET="${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET:-FIRST}"
+OPENCLAW_HF_CLAWEDIT_SOURCE_DIR="${OPENCLAW_HF_CLAWEDIT_SOURCE_DIR:-/data/clawedit}"
+OPENCLAW_HF_CLAWEDIT_RUNTIME_DIR="${OPENCLAW_HF_CLAWEDIT_RUNTIME_DIR:-/root/.openclaw/extensions/clawedit}"
+OPENCLAW_HF_WECHAT_GZH_SOURCE_DIR="${OPENCLAW_HF_WECHAT_GZH_SOURCE_DIR:-/data/wechat-allauto-gzh-main}"
+OPENCLAW_HF_WECHAT_GZH_RUNTIME_DIR="${OPENCLAW_HF_WECHAT_GZH_RUNTIME_DIR:-/root/.openclaw/workspace/wechat-allauto-gzh}"
 
 . "${OPENCLAW_HF_APP_DIR}/lib/common.sh"
 
@@ -113,16 +118,74 @@ require_search_tools() {
   fi
 }
 
+ensure_clawedit_extension() {
+  local source_dir="${OPENCLAW_HF_CLAWEDIT_SOURCE_DIR}"
+  local runtime_dir="${OPENCLAW_HF_CLAWEDIT_RUNTIME_DIR}"
+
+  if [[ ! -d "${source_dir}" ]]; then
+    hf_log WARN "clawedit source directory is missing at ${source_dir}; skipping extension restore"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${runtime_dir}")"
+  rm -rf "${runtime_dir}"
+  cp -a "${source_dir}" "${runtime_dir}"
+  hf_log INFO "restored clawedit extension from ${source_dir}"
+}
+
+ensure_wechat_gzh_workspace_project() {
+  local source_dir="${OPENCLAW_HF_WECHAT_GZH_SOURCE_DIR}"
+  local runtime_dir="${OPENCLAW_HF_WECHAT_GZH_RUNTIME_DIR}"
+
+  if [[ ! -d "${source_dir}" ]]; then
+    hf_log WARN "wechat-allauto-gzh source directory is missing at ${source_dir}; skipping workspace project restore"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${runtime_dir}")"
+  rm -rf "${runtime_dir}"
+  cp -a "${source_dir}" "${runtime_dir}"
+  hf_log INFO "restored wechat-allauto-gzh workspace project from ${source_dir}"
+}
+
+write_wechat_gzh_credentials() {
+  local runtime_dir="${OPENCLAW_HF_WECHAT_GZH_RUNTIME_DIR}"
+  local creds_path="${runtime_dir}/credentials.json"
+
+  if [[ ! -d "${runtime_dir}" ]]; then
+    hf_log WARN "wechat-allauto-gzh runtime directory is missing at ${runtime_dir}; skipping credentials.json write"
+    return 0
+  fi
+
+  if [[ -z "${WECHAT_APP_ID:-}" || -z "${WECHAT_APP_SECRET:-}" ]]; then
+    hf_log WARN "WECHAT_APP_ID or WECHAT_APP_SECRET is unset; skipping wechat-allauto-gzh credentials.json write"
+    return 0
+  fi
+
+  cat > "${creds_path}" <<EOF
+{
+  "AppID": "${WECHAT_APP_ID}",
+  "AppSecret": "${WECHAT_APP_SECRET}"
+}
+EOF
+  chmod 600 "${creds_path}"
+  hf_log INFO "wrote wechat-allauto-gzh credentials.json to ${creds_path}"
+}
+
 hf_log INFO "running install-extra hook"
+hf_log INFO "text-to-image model set=${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET}"
 
 # 低风控模式：运行时不再联网安装插件、技能、Python 包或浏览器。
 # HF 容器启动阶段只从镜像预置目录复制插件，并校验其他资产。
 
+ensure_clawedit_extension
 ensure_prebuilt_extension "wecom"
 ensure_prebuilt_extension "wecom-app"
 ensure_prebuilt_extension "openclaw-weixin"
 require_agent_browser
 require_search_tools
+ensure_wechat_gzh_workspace_project
+write_wechat_gzh_credentials
 
 if [[ -x "${OPENCLAW_HF_INSTALL_ROOT}/bootstrap/install-extra.local.sh" ]]; then
   hf_log INFO "executing persisted install hook"

@@ -10,8 +10,9 @@ hf_load_bucket_env_file() {
   local source_status=0
 
   if [[ ! -f "${env_file}" ]]; then
-    printf '[openclaw-hf][INFO] bucket env file not found: %s; using existing environment\n' "${env_file}"
-    return 0
+    printf '[openclaw-hf][ERROR] required bucket env file not found: %s\n' "${env_file}" >&2
+    printf '[openclaw-hf][ERROR] HF runtime is configured to load secrets only from %s; refusing to fall back to HF Space Secrets\n' "${env_file}" >&2
+    return 1
   fi
 
   if [[ ! -r "${env_file}" ]]; then
@@ -34,7 +35,7 @@ hf_load_bucket_env_file() {
     return "${source_status}"
   fi
 
-  printf '[openclaw-hf][INFO] loaded bucket env file: %s (overrides HF environment variables)\n' "${env_file}"
+  printf '[openclaw-hf][INFO] loaded bucket env file: %s (HF runtime uses bucket env values only)\n' "${env_file}"
 }
 
 hf_load_bucket_env_file "${OPENCLAW_HF_BUCKET_ENV_FILE}"
@@ -361,10 +362,47 @@ resolve_primary_model_slot() {
   esac
 }
 
+resolve_text_to_image_model_slot() {
+  local raw_slot
+  raw_slot="${OPENCLAW_TEXT_TO_IMAGE_MODEL_SET:-FIRST}"
+  raw_slot="$(printf '%s' "${raw_slot}" | tr '[:lower:]' '[:upper:]')"
+  case "${raw_slot}" in
+    1|FIRST)
+      printf 'FIRST\n'
+      ;;
+    2|SECOND)
+      printf 'SECOND\n'
+      ;;
+    *)
+      startup_log ERROR "invalid OPENCLAW_TEXT_TO_IMAGE_MODEL_SET=${raw_slot}; expected FIRST/SECOND or 1/2"
+      return 1
+      ;;
+  esac
+}
+
+resolve_clawedit_text_to_image_model_slot() {
+  local raw_slot
+  raw_slot="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_MODEL_SET:-FIRST}"
+  raw_slot="$(printf '%s' "${raw_slot}" | tr '[:lower:]' '[:upper:]')"
+  case "${raw_slot}" in
+    1|FIRST)
+      printf 'FIRST\n'
+      ;;
+    2|SECOND)
+      printf 'SECOND\n'
+      ;;
+    *)
+      startup_log ERROR "invalid OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_MODEL_SET=${raw_slot}; expected FIRST/SECOND or 1/2"
+      return 1
+      ;;
+  esac
+}
+
 seed_hf_model_config() {
-  local config_path selected_slot
+  local config_path selected_slot selected_text_to_image_slot selected_text_to_image_provider_ref
   config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
   selected_slot="$(resolve_primary_model_slot)"
+  selected_text_to_image_slot="$(resolve_text_to_image_model_slot)"
 
   local primary_url_var primary_key_var primary_model_var
   primary_url_var="OPENCLAW_${selected_slot}_URL"
@@ -382,12 +420,45 @@ seed_hf_model_config() {
   fi
 
   local text_to_image_url text_to_image_key text_to_image_model
+  local text_to_image_first_url text_to_image_first_key text_to_image_first_model
+  local text_to_image_second_url text_to_image_second_key text_to_image_second_model
   local image_to_image_url image_to_image_key image_to_image_model
   local image_to_video_url image_to_video_key image_to_video_model
 
-  text_to_image_url="${OPENCLAW_TEXT_TO_IMAGE_URL:-}"
-  text_to_image_key="${OPENCLAW_TEXT_TO_IMAGE_KEY:-}"
-  text_to_image_model="${OPENCLAW_TEXT_TO_IMAGE_MODEL:-}"
+  text_to_image_first_url="${OPENCLAW_TEXT_TO_IMAGE_FIRST_URL:-${OPENCLAW_TEXT_TO_IMAGE_URL:-}}"
+  text_to_image_first_key="${OPENCLAW_TEXT_TO_IMAGE_FIRST_KEY:-${OPENCLAW_TEXT_TO_IMAGE_KEY:-}}"
+  text_to_image_first_model="${OPENCLAW_TEXT_TO_IMAGE_FIRST_MODEL:-${OPENCLAW_TEXT_TO_IMAGE_MODEL:-}}"
+
+  text_to_image_second_url="${OPENCLAW_TEXT_TO_IMAGE_SECOND_URL:-}"
+  text_to_image_second_key="${OPENCLAW_TEXT_TO_IMAGE_SECOND_KEY:-}"
+  text_to_image_second_model="${OPENCLAW_TEXT_TO_IMAGE_SECOND_MODEL:-}"
+
+  case "${selected_text_to_image_slot}" in
+    FIRST)
+      text_to_image_url="${text_to_image_first_url}"
+      text_to_image_key="${text_to_image_first_key}"
+      text_to_image_model="${text_to_image_first_model}"
+      ;;
+    SECOND)
+      text_to_image_url="${text_to_image_second_url}"
+      text_to_image_key="${text_to_image_second_key}"
+      text_to_image_model="${text_to_image_second_model}"
+      ;;
+  esac
+  selected_text_to_image_provider_ref="hf-openai-image/${text_to_image_model}"
+
+  if [[ -n "${text_to_image_first_url}${text_to_image_first_key}${text_to_image_first_model}" ]] && [[ -z "${text_to_image_first_url}" || -z "${text_to_image_first_key}" || -z "${text_to_image_first_model}" ]]; then
+    startup_log WARN "text-to-image FIRST model set is partially configured; expected OPENCLAW_TEXT_TO_IMAGE_FIRST_URL, OPENCLAW_TEXT_TO_IMAGE_FIRST_KEY, OPENCLAW_TEXT_TO_IMAGE_FIRST_MODEL"
+  fi
+
+  if [[ -n "${text_to_image_second_url}${text_to_image_second_key}${text_to_image_second_model}" ]] && [[ -z "${text_to_image_second_url}" || -z "${text_to_image_second_key}" || -z "${text_to_image_second_model}" ]]; then
+    startup_log WARN "text-to-image SECOND model set is partially configured; expected OPENCLAW_TEXT_TO_IMAGE_SECOND_URL, OPENCLAW_TEXT_TO_IMAGE_SECOND_KEY, OPENCLAW_TEXT_TO_IMAGE_SECOND_MODEL"
+  fi
+
+  if [[ -z "${text_to_image_url}" || -z "${text_to_image_key}" || -z "${text_to_image_model}" ]]; then
+    startup_log ERROR "selected text-to-image model set ${selected_text_to_image_slot} is incomplete"
+    return 1
+  fi
 
   image_to_image_url="${OPENCLAW_IMAGE_TO_IMAGE_URL:-}"
   image_to_image_key="${OPENCLAW_IMAGE_TO_IMAGE_KEY:-}"
@@ -397,7 +468,7 @@ seed_hf_model_config() {
   image_to_video_key="${OPENCLAW_IMAGE_TO_VIDEO_KEY:-}"
   image_to_video_model="${OPENCLAW_IMAGE_TO_VIDEO_MODEL:-}"
 
-  node - <<'EOF' "${config_path}" "${primary_url}" "${primary_key}" "${primary_model}" "${selected_slot}" "${text_to_image_url}" "${text_to_image_key}" "${text_to_image_model}" "${image_to_image_url}" "${image_to_image_key}" "${image_to_image_model}" "${image_to_video_url}" "${image_to_video_key}" "${image_to_video_model}"
+  node - <<'EOF' "${config_path}" "${primary_url}" "${primary_key}" "${primary_model}" "${selected_slot}" "${selected_text_to_image_slot}" "${text_to_image_first_url}" "${text_to_image_first_key}" "${text_to_image_first_model}" "${text_to_image_second_url}" "${text_to_image_second_key}" "${text_to_image_second_model}" "${text_to_image_url}" "${text_to_image_key}" "${text_to_image_model}" "${image_to_image_url}" "${image_to_image_key}" "${image_to_image_model}" "${image_to_video_url}" "${image_to_video_key}" "${image_to_video_model}"
 const fs = require("node:fs");
 
 const [
@@ -406,6 +477,13 @@ const [
   primaryKey,
   primaryModel,
   selectedSlot,
+  selectedTextToImageSlot,
+  textToImageFirstUrl,
+  textToImageFirstKey,
+  textToImageFirstModel,
+  textToImageSecondUrl,
+  textToImageSecondKey,
+  textToImageSecondModel,
   textToImageUrl,
   textToImageKey,
   textToImageModel,
@@ -446,14 +524,19 @@ parsed.models.providers["hf-openai-chat"] = makeProvider(primaryUrl, primaryKey,
   { id: primaryModel, name: `HF Primary ${selectedSlot}` },
 ]);
 
-if (textToImageModel || imageToImageModel) {
-  const imageProviderBaseUrl = textToImageUrl || imageToImageUrl || imageToVideoUrl || primaryUrl;
-  const imageProviderApiKey = textToImageKey || imageToImageKey || imageToVideoKey || primaryKey;
+if (textToImageModel) {
+  parsed.models.providers["hf-openai-image"] = makeProvider(textToImageUrl, textToImageKey, [
+    { id: textToImageModel, name: `HF Text To Image ${selectedTextToImageSlot}` },
+  ]);
+}
+
+if (imageToImageModel || imageToVideoModel) {
+  const imageProviderBaseUrl = imageToImageUrl || imageToVideoUrl || textToImageUrl || primaryUrl;
+  const imageProviderApiKey = imageToImageKey || imageToVideoKey || textToImageKey || primaryKey;
   parsed.models.providers.openai = makeProvider(
     imageProviderBaseUrl,
     imageProviderApiKey,
     [
-      ...(textToImageModel ? [{ id: textToImageModel, name: "HF Text To Image" }] : []),
       ...(imageToImageModel ? [{ id: imageToImageModel, name: "HF Image To Image" }] : []),
       ...(imageToVideoModel ? [{ id: imageToVideoModel, name: "HF Image To Video" }] : []),
     ],
@@ -467,7 +550,9 @@ parsed.agents.defaults = ensureObject(parsed.agents.defaults);
 parsed.agents.defaults.model = { primary: `hf-openai-chat/${primaryModel}` };
 
 if (textToImageModel) {
-  parsed.agents.defaults.imageGenerationModel = { primary: `openai/${textToImageModel}` };
+  parsed.agents.defaults.imageGenerationModel = {
+    primary: `hf-openai-image/${textToImageModel}`,
+  };
 }
 
 if (imageToVideoModel) {
@@ -477,6 +562,15 @@ if (imageToVideoModel) {
 parsed.env = ensureObject(parsed.env);
 parsed.env.vars = ensureObject(parsed.env.vars);
 parsed.env.vars.OPENCLAW_PRIMARY_MODEL_SET = selectedSlot;
+parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_MODEL_SET = selectedTextToImageSlot;
+
+if (textToImageFirstUrl) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_FIRST_URL = textToImageFirstUrl;
+if (textToImageFirstKey) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_FIRST_KEY = textToImageFirstKey;
+if (textToImageFirstModel) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_FIRST_MODEL = textToImageFirstModel;
+
+if (textToImageSecondUrl) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_SECOND_URL = textToImageSecondUrl;
+if (textToImageSecondKey) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_SECOND_KEY = textToImageSecondKey;
+if (textToImageSecondModel) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_SECOND_MODEL = textToImageSecondModel;
 
 if (textToImageUrl) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_URL = textToImageUrl;
 if (textToImageKey) parsed.env.vars.OPENCLAW_TEXT_TO_IMAGE_KEY = textToImageKey;
@@ -500,15 +594,15 @@ EOF
 
   startup_log INFO "seeded HF model config using primary set ${selected_slot}"
   startup_log INFO "HF primary model target: slot=${selected_slot} url=${primary_url} model=${primary_model}"
-  startup_log INFO "HF image provider upstream=${text_to_image_url:-<unset>}"
-  if [[ -n "${text_to_image_model}" && -n "${image_to_video_model}" ]] && ! node - <<'EOF' "${text_to_image_url:-${primary_url}}" "${text_to_image_key:-${primary_key}}" "${image_to_video_url:-${text_to_image_url:-${primary_url}}}" "${image_to_video_key:-${text_to_image_key:-${primary_key}}}"
+  startup_log INFO "HF text-to-image target: slot=${selected_text_to_image_slot} url=${text_to_image_url} model=${text_to_image_model}"
+  if [[ -n "${image_to_image_model}" && -n "${image_to_video_model}" ]] && ! node - <<'EOF' "${image_to_image_url:-${text_to_image_url}}" "${image_to_image_key:-${text_to_image_key}}" "${image_to_video_url:-${image_to_image_url:-${text_to_image_url}}}" "${image_to_video_key:-${image_to_image_key:-${text_to_image_key}}}"
 const [leftUrl, leftKey, rightUrl, rightKey] = process.argv.slice(2);
 process.exit(leftUrl === rightUrl && leftKey === rightKey ? 0 : 1);
 EOF
   then
-    startup_log WARN "image and video generation currently share canonical provider openai; differing URL/KEY values were provided, so video generation may target the image endpoint"
+    startup_log WARN "image-to-image and image-to-video currently share canonical provider openai; differing URL/KEY values were provided, so video generation may target the image-to-image endpoint"
   fi
-  startup_log INFO "HF default models: chat=hf-openai-chat/${primary_model} image=${text_to_image_model:+openai/${text_to_image_model}}${text_to_image_model:-<unset>} video=${image_to_video_model:+openai/${image_to_video_model}}${image_to_video_model:-<unset>}"
+  startup_log INFO "HF default models: chat=hf-openai-chat/${primary_model} image=${selected_text_to_image_provider_ref} video=${image_to_video_model:+openai/${image_to_video_model}}${image_to_video_model:-<unset>}"
 }
 
 seed_hf_china_channels_config() {
@@ -678,6 +772,128 @@ EOF
   fi
 
   startup_log INFO "seeded OpenClaw China channel config from HF environment"
+}
+
+seed_hf_clawedit_config() {
+  local config_path selected_text_to_image_slot
+  local text_to_image_first_url text_to_image_first_key text_to_image_first_model
+  local text_to_image_second_url text_to_image_second_key text_to_image_second_model
+  local text_to_image_url text_to_image_key text_to_image_model
+  config_path="${OPENCLAW_HF_RUNTIME_ROOT}/openclaw.json"
+  selected_text_to_image_slot="$(resolve_clawedit_text_to_image_model_slot)"
+
+  text_to_image_first_url="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_URL:-${OPENCLAW_TEXT_TO_IMAGE_FIRST_URL:-${OPENCLAW_TEXT_TO_IMAGE_URL:-}}}"
+  text_to_image_first_key="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_KEY:-${OPENCLAW_TEXT_TO_IMAGE_FIRST_KEY:-${OPENCLAW_TEXT_TO_IMAGE_KEY:-}}}"
+  text_to_image_first_model="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_MODEL:-${OPENCLAW_TEXT_TO_IMAGE_FIRST_MODEL:-${OPENCLAW_TEXT_TO_IMAGE_MODEL:-}}}"
+
+  text_to_image_second_url="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_URL:-${OPENCLAW_TEXT_TO_IMAGE_SECOND_URL:-}}"
+  text_to_image_second_key="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_KEY:-${OPENCLAW_TEXT_TO_IMAGE_SECOND_KEY:-}}"
+  text_to_image_second_model="${OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_MODEL:-${OPENCLAW_TEXT_TO_IMAGE_SECOND_MODEL:-}}"
+
+  case "${selected_text_to_image_slot}" in
+    FIRST)
+      text_to_image_url="${text_to_image_first_url}"
+      text_to_image_key="${text_to_image_first_key}"
+      text_to_image_model="${text_to_image_first_model}"
+      ;;
+    SECOND)
+      text_to_image_url="${text_to_image_second_url}"
+      text_to_image_key="${text_to_image_second_key}"
+      text_to_image_model="${text_to_image_second_model}"
+      ;;
+  esac
+
+  if [[ -n "${text_to_image_first_url}${text_to_image_first_key}${text_to_image_first_model}" ]] && [[ -z "${text_to_image_first_url}" || -z "${text_to_image_first_key}" || -z "${text_to_image_first_model}" ]]; then
+    startup_log WARN "clawedit text-to-image FIRST model set is partially configured; expected OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_URL, OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_KEY, OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_FIRST_MODEL"
+  fi
+
+  if [[ -n "${text_to_image_second_url}${text_to_image_second_key}${text_to_image_second_model}" ]] && [[ -z "${text_to_image_second_url}" || -z "${text_to_image_second_key}" || -z "${text_to_image_second_model}" ]]; then
+    startup_log WARN "clawedit text-to-image SECOND model set is partially configured; expected OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_URL, OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_KEY, OPENCLAW_CLAWEDIT_TEXT_TO_IMAGE_SECOND_MODEL"
+  fi
+
+  if [[ -z "${text_to_image_url}" || -z "${text_to_image_key}" || -z "${text_to_image_model}" ]]; then
+    startup_log ERROR "selected clawedit text-to-image model set ${selected_text_to_image_slot} is incomplete"
+    return 1
+  fi
+
+  node - <<'EOF' "${config_path}" "${selected_text_to_image_slot}" "${text_to_image_url}" "${text_to_image_key}" "${text_to_image_model}"
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const selectedTextToImageSlot = process.argv[3];
+const textToImageUrl = process.argv[4];
+const textToImageKey = process.argv[5];
+const textToImageModel = process.argv[6];
+const raw = fs.readFileSync(configPath, "utf8");
+const parsed = JSON.parse(raw);
+
+const ensureObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+
+const env = process.env;
+const textToImageProviderId = "text2img";
+const imageToImageProviderId = "img2img";
+const imageToVideoProviderId = "img2video";
+
+parsed.plugins = ensureObject(parsed.plugins);
+parsed.plugins.entries = ensureObject(parsed.plugins.entries);
+parsed.plugins.entries.clawedit = ensureObject(parsed.plugins.entries.clawedit);
+parsed.plugins.entries.clawedit.enabled = true;
+
+const claweditConfig = ensureObject(parsed.plugins.entries.clawedit.config);
+claweditConfig.defaultProvider = imageToImageProviderId;
+claweditConfig.videoProvider = imageToVideoProviderId;
+claweditConfig.fastProvider = textToImageProviderId;
+claweditConfig.textToImageProviders = [textToImageProviderId];
+
+const existingFallback = ensureObject(claweditConfig.fallback);
+claweditConfig.fallback = {
+  enabled: existingFallback.enabled ?? true,
+  order: Array.isArray(existingFallback.order) && existingFallback.order.length > 0
+    ? existingFallback.order
+    : [imageToImageProviderId],
+};
+
+const existingRetry = ensureObject(claweditConfig.retry);
+claweditConfig.retry = {
+  maxAttempts: Number.isInteger(existingRetry.maxAttempts) && existingRetry.maxAttempts > 0
+    ? existingRetry.maxAttempts
+    : 4,
+  backoffMs: typeof existingRetry.backoffMs === "number" && existingRetry.backoffMs >= 0
+    ? existingRetry.backoffMs
+    : 1500,
+};
+
+claweditConfig.providers = ensureObject(claweditConfig.providers);
+claweditConfig.providers[textToImageProviderId] = {
+  type: "openai-compatible",
+  apiKey: textToImageKey,
+  model: textToImageModel,
+  baseUrl: textToImageUrl,
+  timeoutMs: 120000,
+};
+claweditConfig.providers[imageToImageProviderId] = {
+  type: "openai-compatible",
+  apiKey: env.OPENCLAW_IMAGE_TO_IMAGE_KEY || "",
+  model: env.OPENCLAW_IMAGE_TO_IMAGE_MODEL || "",
+  baseUrl: env.OPENCLAW_IMAGE_TO_IMAGE_URL || "",
+  timeoutMs: 300000,
+};
+claweditConfig.providers[imageToVideoProviderId] = {
+  type: "openai-compatible",
+  apiKey: env.OPENCLAW_IMAGE_TO_VIDEO_KEY || "",
+  model: env.OPENCLAW_IMAGE_TO_VIDEO_MODEL || "",
+  baseUrl: env.OPENCLAW_IMAGE_TO_VIDEO_URL || "",
+  timeoutMs: 120000,
+};
+
+parsed.plugins.entries.clawedit.config = claweditConfig;
+
+fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+EOF
+
+  startup_log INFO "seeded clawedit plugin config from HF environment"
+  startup_log INFO "clawedit text-to-image target: slot=${selected_text_to_image_slot} url=${text_to_image_url} model=${text_to_image_model}"
 }
 
 clean_stale_china_channels_config() {
@@ -1019,6 +1235,7 @@ seed_hf_gateway_config
 start_qwen_image_bridge
 start_weixin_image_normalizer
 seed_hf_model_config
+seed_hf_clawedit_config
 seed_hf_china_channels_config
 seed_hf_search_provider_config
 seed_hf_skill_runtime_config

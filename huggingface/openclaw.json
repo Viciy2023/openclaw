@@ -20,11 +20,27 @@
           {
             "id": "placeholder-primary",
             "name": "HF Primary Placeholder"
-          },
+          }
+        ]
+      },
+      "hf-openai-image": {
+        "api": "openai-completions",
+        "auth": "api-key",
+        "baseUrl": "https://example.invalid/v1",
+        "apiKey": "replace-me",
+        "models": [
           {
             "id": "placeholder-text-to-image",
             "name": "HF Text To Image Placeholder"
-          },
+          }
+        ]
+      },
+      "openai": {
+        "api": "openai-completions",
+        "auth": "api-key",
+        "baseUrl": "https://example.invalid/v1",
+        "apiKey": "replace-me",
+        "models": [
           {
             "id": "placeholder-image-to-image",
             "name": "HF Image To Image Placeholder"
@@ -43,10 +59,10 @@
         "primary": "hf-openai/placeholder-primary"
       },
       "imageGenerationModel": {
-        "primary": "hf-openai/placeholder-text-to-image"
+        "primary": "hf-openai-image/placeholder-text-to-image"
       },
       "videoGenerationModel": {
-        "primary": "hf-openai/placeholder-image-to-video"
+        "primary": "openai/placeholder-image-to-video"
       }
     }
   },

@@ -87,8 +87,6 @@ apps/ios/*.mobileprovision
 docs/.local/
 docs/internal/
 tmp/
-IDENTITY.md
-USER.md
 .tgz
 .idea
 
@@ -150,3 +148,20 @@ test/fixtures/openclaw-vitest-unit-report.json
 analysis/
 .artifacts/qa-e2e/
 extensions/qa-lab/web/dist/
+huggingface/.env.example
+huggingface/2026-04-16-huggingface-openclaw-deployment-design.md
+.env.example
+huggingface/.env.example
+huggingface/构建日志.MD
+huggingface/运行日志.MD
+huggingface/openclaw 重启后.json
+huggingface/openclaw 0416.json
+huggingface/qwen2api生图日志.MD
+huggingface/简简单单让微信版龙虾生个图.html
+apps/android/gradlew.bat
+tencent-weixin-openclaw-weixin-2.1.9.tgz
+apps/android/gradlew.bat
+apps/android/gradlew.bat
+huggingface/wechat-allauto-gzh-main
+huggingface/clawedit
+huggingface/workspace
