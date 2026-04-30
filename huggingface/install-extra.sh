@@ -168,6 +168,8 @@ write_wechat_gzh_credentials() {
 
   cat > "${creds_path}" <<EOF
 {
+  "app_id": "${WECHAT_APP_ID}",
+  "app_secret": "${WECHAT_APP_SECRET}",
   "AppID": "${WECHAT_APP_ID}",
   "AppSecret": "${WECHAT_APP_SECRET}"
 }
