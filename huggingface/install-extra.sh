@@ -155,6 +155,7 @@ ensure_wechat_gzh_workspace_project() {
 write_wechat_gzh_credentials() {
   local runtime_dir="${OPENCLAW_HF_WECHAT_GZH_RUNTIME_DIR}"
   local creds_path="${runtime_dir}/credentials.json"
+  local masked_app_id masked_app_secret
 
   if [[ ! -d "${runtime_dir}" ]]; then
     hf_log WARN "wechat-allauto-gzh runtime directory is missing at ${runtime_dir}; skipping credentials.json write"
@@ -176,6 +177,9 @@ write_wechat_gzh_credentials() {
 EOF
   chmod 600 "${creds_path}"
   hf_log INFO "wrote wechat-allauto-gzh credentials.json to ${creds_path}"
+  masked_app_id="${WECHAT_APP_ID:0:4}...${WECHAT_APP_ID: -4}"
+  masked_app_secret="${WECHAT_APP_SECRET:0:4}...${WECHAT_APP_SECRET: -4}"
+  hf_log INFO "wechat-allauto-gzh credentials summary path=${creds_path} app_id=${masked_app_id} app_secret=${masked_app_secret}"
 }
 
 test_wechat_gzh_token_connectivity() {
