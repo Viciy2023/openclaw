@@ -131,7 +131,7 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "请执行系统健康检查，重点检查网关状态、接口连通性、任务调度与消息发送链路。如发现异常，输出简洁中文告警到微信；如无异常，输出简短正常状态摘要。"
+        "message": "请执行系统健康检查，重点检查网关状态、接口连通性、OpenClaw 内部 cron 任务调度状态与消息发送链路。注意：本环境使用 OpenClaw 的 jobs.json 调度，不要因为未检测到 Linux system crontab 就判定异常；只有在 hf-system-health-check 或其他已配置的 OpenClaw cron 任务缺失、未触发、明显失效时，才报告调度异常。如发现异常，输出简洁中文告警到微信；如无异常，输出简短正常状态摘要。"
       },
       "delivery": {
         "mode": "announce",
