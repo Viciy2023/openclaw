@@ -221,6 +221,60 @@ console.log(summarize("live cron jobs", livePath));
 EOF
 }
 
+patch_existing_hf_cron_placeholders() {
+  local runtime_jobs_path live_jobs_path weixin_to
+  runtime_jobs_path="$(hf_runtime_path "cron")/jobs.json"
+  live_jobs_path="$(hf_live_path "cron")/jobs.json"
+  weixin_to="${WEIXIN_TO:-}"
+
+  if [[ -z "${weixin_to}" ]]; then
+    startup_log WARN "WEIXIN_TO is unset; skipping existing cron placeholder patch"
+    return 0
+  fi
+
+  node - <<'EOF' "${runtime_jobs_path}" "${live_jobs_path}" "${weixin_to}"
+const fs = require("node:fs");
+
+const [runtimePath, livePath, weixinTo] = process.argv.slice(2);
+const placeholder = "__WEIXIN_TO__";
+
+function patchFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { exists: false, patched: 0 };
+  }
+
+  const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.jobs)) {
+    return { exists: true, patched: 0 };
+  }
+
+  let patched = 0;
+  for (const job of parsed.jobs) {
+    if (
+      job &&
+      typeof job === "object" &&
+      job.delivery &&
+      typeof job.delivery === "object" &&
+      job.delivery.to === placeholder
+    ) {
+      job.delivery.to = weixinTo;
+      patched += 1;
+    }
+  }
+
+  if (patched > 0) {
+    fs.writeFileSync(filePath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+  }
+
+  return { exists: true, patched };
+}
+
+const runtimeResult = patchFile(runtimePath);
+const liveResult = patchFile(livePath);
+console.log(JSON.stringify({ runtimeResult, liveResult }));
+EOF
+}
+
 seed_hf_cron_jobs() {
   local runtime_cron_dir runtime_jobs_path live_jobs_path seed_jobs_path weixin_to
   runtime_cron_dir="${OPENCLAW_HF_RUNTIME_ROOT}/cron"
@@ -243,6 +297,9 @@ seed_hf_cron_jobs() {
 
   if [[ -s "${live_jobs_path}" ]] || [[ -s "${runtime_jobs_path}" ]]; then
     startup_log INFO "cron jobs already exist in live/runtime state; skipping HF cron seed"
+    local patch_summary
+    patch_summary="$(patch_existing_hf_cron_placeholders)"
+    startup_log INFO "existing cron placeholder patch result ${patch_summary}"
     return 0
   fi
 
