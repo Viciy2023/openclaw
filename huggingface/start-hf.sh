@@ -805,7 +805,9 @@ const existingAllow = Array.isArray(parsed.plugins.allow)
   ? parsed.plugins.allow.filter((entry) => typeof entry === "string" && entry.trim())
   : [];
 const allowSet = new Set(existingAllow);
-allowSet.add("clawedit");
+for (const pluginId of ["clawedit", "qqbot", "feishu"]) {
+  allowSet.add(pluginId);
+}
 parsed.plugins.allow = Array.from(allowSet);
 
 if (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_VERIFICATION_TOKEN && env.FEISHU_ENCRYPT_KEY) {
@@ -859,8 +861,10 @@ parsed.plugins.entries["openclaw-weixin"] = {
 };
 if (Array.isArray(parsed.plugins.allow)) {
   parsed.plugins.allow = parsed.plugins.allow.filter((entry) => entry !== "channels");
-  if (!parsed.plugins.allow.includes("clawedit")) {
-    parsed.plugins.allow.push("clawedit");
+  for (const pluginId of ["clawedit", "qqbot", "feishu"]) {
+    if (!parsed.plugins.allow.includes(pluginId)) {
+      parsed.plugins.allow.push(pluginId);
+    }
   }
   if (parsed.plugins.allow.length === 0) {
     delete parsed.plugins.allow;
